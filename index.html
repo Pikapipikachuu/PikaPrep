@@ -1,0 +1,3129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PikaPrep — NEET 2027 AI Study Companion</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PDF.js for client-side PDF text & page rendering extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdf9',
+              100: '#ccfbf1',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.55);
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.7; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.7; }
+    }
+    .animate-pulse-ring {
+      animation: pulseRing 2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] dark:bg-slate-950 text-slate-800 dark:text-slate-100 antialiased selection:bg-teal-100 selection:text-teal-900 min-h-screen flex flex-col md:flex-row">
+
+  <!-- Toast Notification Container (Replaces alert/confirm) -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-xl">
+      <h3 id="confirm-title" class="text-lg font-semibold text-slate-900 dark:text-white">Confirm Action</h3>
+      <p id="confirm-message" class="text-sm text-slate-600 dark:text-slate-300 mt-2 leading-relaxed"></p>
+      <div class="mt-6 flex justify-end gap-3">
+        <button id="confirm-cancel-btn" class="px-4 py-2.5 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition">Cancel</button>
+        <button id="confirm-ok-btn" class="px-4 py-2.5 text-sm font-medium rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop Sidebar Navigation -->
+  <aside class="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-30">
+    <div class="p-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shadow-xs">
+          <i data-lucide="sparkles" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-bold text-lg tracking-tight text-slate-900 dark:text-white">PikaPrep</span>
+          <span class="block text-[11px] font-medium text-teal-600 dark:text-teal-400">NEET 2027 AI</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto" id="desktop-nav">
+      <button data-nav="home" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="home" class="w-4 h-4"></i>
+        <span>Home</span>
+      </button>
+      <button data-nav="analyze" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="file-scan" class="w-4 h-4"></i>
+        <span>Upload &amp; Analyze</span>
+      </button>
+      <button data-nav="qbank" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="layers" class="w-4 h-4"></i>
+        <span>Question Bank</span>
+        <span id="nav-qbank-count" class="ml-auto text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">0</span>
+      </button>
+      <button data-nav="planner" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="calendar-check" class="w-4 h-4"></i>
+        <span>Study Planner</span>
+      </button>
+      <button data-nav="performance" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+        <span>Performance</span>
+      </button>
+      <button data-nav="saved" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="bookmark" class="w-4 h-4"></i>
+        <span>Saved &amp; Notes</span>
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+      <button data-nav="settings" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+        <span>Settings &amp; API</span>
+      </button>
+      <div class="px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 flex items-center justify-center font-semibold text-xs" id="sidebar-avatar">NA</div>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-semibold truncate text-slate-800 dark:text-slate-200" id="sidebar-username">NEET Aspirant</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Target: NEET 2027</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="flex-1 md:pl-64 flex flex-col min-h-screen pb-20 md:pb-0">
+    <!-- Top Header Bar -->
+    <header class="sticky top-0 z-20 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 md:hidden">
+        <div class="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+        <span class="font-bold text-base text-slate-900 dark:text-white">PikaPrep</span>
+      </div>
+
+      <div class="hidden md:flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+        <span id="header-breadcrumb" class="font-medium text-slate-800 dark:text-slate-200">Home</span>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3 ml-auto">
+        <!-- Global Language Preference Selector -->
+        <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 text-xs font-medium">
+          <button onclick="setGlobalLanguage('bilingual')" id="lang-btn-bilingual" class="px-2.5 py-1 rounded-lg transition">EN + HI</button>
+          <button onclick="setGlobalLanguage('en')" id="lang-btn-en" class="px-2.5 py-1 rounded-lg transition">EN</button>
+          <button onclick="setGlobalLanguage('hi')" id="lang-btn-hi" class="px-2.5 py-1 rounded-lg transition">HI</button>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button onclick="toggleTheme()" aria-label="Toggle Theme" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition">
+          <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
+          <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+        </button>
+
+        <!-- Mobile Settings shortcut -->
+        <button onclick="navigateTo('settings')" aria-label="Settings" class="md:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Dynamic View Container -->
+    <main id="app-main" class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
+      <!-- Views are rendered cleanly into this container -->
+    </main>
+  </div>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-2 py-1.5 flex justify-around items-center">
+    <button data-nav="home" class="mobile-nav-btn flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition">
+      <i data-lucide="home" class="w-5 h-5"></i>
+      <span>Home</span>
+    </button>
+    <button data-nav="analyze" class="mobile-nav-btn flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition">
+      <i data-lucide="file-scan" class="w-5 h-5"></i>
+      <span>Analyze</span>
+    </button>
+    <button data-nav="qbank" class="mobile-nav-btn flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition">
+      <i data-lucide="layers" class="w-5 h-5"></i>
+      <span>Q-Bank</span>
+    </button>
+    <button data-nav="planner" class="mobile-nav-btn flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition">
+      <i data-lucide="calendar-check" class="w-5 h-5"></i>
+      <span>Planner</span>
+    </button>
+    <button data-nav="performance" class="mobile-nav-btn flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition">
+      <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+      <span>Stats</span>
+    </button>
+    <button data-nav="saved" class="mobile-nav-btn flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition">
+      <i data-lucide="bookmark" class="w-5 h-5"></i>
+      <span>Saved</span>
+    </button>
+  </nav>
+
+  <!-- Question Detail Modal / Drawer -->
+  <div id="question-modal" class="fixed inset-0 z-40 hidden bg-slate-900/50 backdrop-blur-xs overflow-y-auto">
+    <div class="min-h-screen px-3 sm:px-6 py-6 flex items-start justify-center">
+      <div id="question-modal-content" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-3xl w-full p-5 sm:p-7 shadow-2xl my-auto">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configure PDF.js worker
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // =========================================================================
+    // 1. STATE MANAGEMENT & PERSISTENCE LAYER
+    // =========================================================================
+    const STORAGE_KEY = 'pikaprep_neet2027_state_v1';
+
+    const defaultState = {
+      currentView: 'home',
+      settings: {
+        globalLanguage: 'bilingual', // 'bilingual' | 'en' | 'hi'
+        theme: 'light',
+        studentName: 'NEET 2027 Aspirant',
+        targetScore: 680,
+      },
+      materials: [], // { id, name, size, type, uploadedAt, pageCount, extractedText, imageParts: [] }
+      analysis: null, // { analyzedAt, summary, subjects: [ { name, chapters: [ { id, name, topics: [ { id, name, conceptSummary, isHighYield } ] } ] } ] }
+      selection: {
+        selectedChapterIds: [],
+        selectedTopicIds: [],
+      },
+      generationConfig: {
+        language: 'English + Hindi',
+        coverage: 'Important + Expected',
+        pattern: 'All NEET Patterns',
+        questionCount: 6,
+      },
+      questions: [], // Stored generated questions
+      attempts: {},  // { [questionId]: { selectedIndex, isCorrect, attemptedAt } }
+      savedIds: [],  // Array of question IDs
+      notes: {},     // { [questionId]: { text, updatedAt } }
+      planner: {
+        examDate: '2027-05-02',
+        dailyHours: 6,
+        availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        priorities: { Biology: 'High', Chemistry: 'Medium', Physics: 'High' },
+        tasks: [], // { id, date, subject, title, durationMins, completed, missedRescheduled }
+      },
+      activityLog: [], // { id, text, timestamp, type }
+      qbankFilters: {
+        subject: 'All',
+        chapter: 'All',
+        topic: 'All',
+        pattern: 'All',
+        priority: 'All',
+        search: '',
+        page: 1,
+        pageSize: 10
+      },
+      savedFilterSubject: 'All',
+      savedSearch: '',
+      activeQuestionId: null,
+      activeQuestionLang: null, // Per-question language override ('bilingual' | 'en' | 'hi')
+    };
+
+    let appState = loadState();
+
+    // Transient session state (not persisted in localStorage due to binary size limits)
+    let pendingUploadFiles = []; // Raw File objects ready for extraction & analysis
+    let analysisWorkflowStep = 'upload'; // 'upload' | 'analyzing' | 'results' | 'configure'
+    let analysisStageText = '';
+    let isGeneratingQuestions = false;
+    let generationStatusText = '';
+    let expandedSubjects = {};
+    let expandedChapters = {};
+    let showAllChaptersMap = {};
+    let showAllTopicsMap = {};
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(defaultState);
+        const parsed = JSON.parse(raw);
+        return {
+          ...structuredClone(defaultState),
+          ...parsed,
+          settings: { ...defaultState.settings, ...(parsed.settings || {}) },
+          selection: { ...defaultState.selection, ...(parsed.selection || {}) },
+          generationConfig: { ...defaultState.generationConfig, ...(parsed.generationConfig || {}) },
+          planner: { ...defaultState.planner, ...(parsed.planner || {}) },
+          qbankFilters: { ...defaultState.qbankFilters, ...(parsed.qbankFilters || {}) },
+        };
+      } catch (e) {
+        console.error('Failed to load state:', e);
+        return structuredClone(defaultState);
+      }
+    }
+
+    function saveState() {
+      try {
+        // Persist everything except large raw base64 images if storage nears quota
+        const stateToSave = {
+          ...appState,
+          materials: appState.materials.map(m => ({
+            id: m.id,
+            name: m.name,
+            size: m.size,
+            type: m.type,
+            uploadedAt: m.uploadedAt,
+            pageCount: m.pageCount,
+            extractedText: (m.extractedText || '').slice(0, 45000), // Keep generous text context
+          }))
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+      } catch (e) {
+        showToast('Storage limit reached. Consider clearing older materials in Settings.', 'warning');
+      }
+      updateNavBadges();
+    }
+
+    function logActivity(text, type = 'info') {
+      appState.activityLog.unshift({
+        id: 'act_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        text,
+        timestamp: new Date().toISOString(),
+        type
+      });
+      appState.activityLog = appState.activityLog.slice(0, 20);
+      saveState();
+    }
+
+    // =========================================================================
+    // 2. UI UTILITIES (TOASTS, MODALS, THEME, LANGUAGE)
+    // =========================================================================
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        info: 'bg-slate-900 text-white border-slate-700 dark:bg-slate-800',
+        success: 'bg-teal-700 text-white border-teal-600',
+        warning: 'bg-amber-600 text-white border-amber-500',
+        error: 'bg-rose-600 text-white border-rose-500',
+      };
+      toast.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-lg text-sm font-medium flex items-center justify-between gap-3 transition-all duration-300 ${colors[type] || colors.info}`;
+      toast.innerHTML = `
+        <span>${escapeHtml(message)}</span>
+        <button onclick="this.parentElement.remove()" class="opacity-75 hover:opacity-100 text-xs">✕</button>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+      }, 4500);
+    }
+
+    function showConfirm(title, message, onConfirm) {
+      const modal = document.getElementById('confirm-modal');
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-message').textContent = message;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      const cancelBtn = document.getElementById('confirm-cancel-btn');
+      const okBtn = document.getElementById('confirm-ok-btn');
+
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      };
+
+      cancelBtn.onclick = cleanup;
+      okBtn.onclick = () => {
+        cleanup();
+        onConfirm();
+      };
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function formatDateRelative(isoStr) {
+      if (!isoStr) return '';
+      const d = new Date(isoStr);
+      const diffMins = Math.floor((Date.now() - d.getTime()) / 60000);
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHrs = Math.floor(diffMins / 60);
+      if (diffHrs < 24) return `${diffHrs}h ago`;
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    }
+
+    function applyTheme() {
+      const isDark = appState.settings.theme === 'dark';
+      document.documentElement.classList.toggle('dark', isDark);
+    }
+
+    function toggleTheme() {
+      appState.settings.theme = appState.settings.theme === 'dark' ? 'light' : 'dark';
+      applyTheme();
+      saveState();
+    }
+
+    function setGlobalLanguage(lang) {
+      appState.settings.globalLanguage = lang;
+      saveState();
+      updateLanguageHeaderUI();
+      renderCurrentView();
+      if (appState.activeQuestionId) {
+        appState.activeQuestionLang = lang;
+        renderQuestionModal(appState.activeQuestionId);
+      }
+    }
+
+    function updateLanguageHeaderUI() {
+      ['bilingual', 'en', 'hi'].forEach(code => {
+        const btn = document.getElementById(`lang-btn-${code}`);
+        if (!btn) return;
+        if (appState.settings.globalLanguage === code) {
+          btn.className = 'px-2.5 py-1 rounded-lg bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-xs transition';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition';
+        }
+      });
+    }
+
+    function updateNavBadges() {
+      const badge = document.getElementById('nav-qbank-count');
+      if (badge) badge.textContent = appState.questions.length;
+      const usernameEl = document.getElementById('sidebar-username');
+      const avatarEl = document.getElementById('sidebar-avatar');
+      if (usernameEl) usernameEl.textContent = appState.settings.studentName || 'NEET Aspirant';
+      if (avatarEl) {
+        const initials = (appState.settings.studentName || 'NA').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        avatarEl.textContent = initials || 'NA';
+      }
+    }
+
+    // =========================================================================
+    // 3. NAVIGATION CONTROLLER
+    // =========================================================================
+    const viewTitles = {
+      home: 'Home Dashboard',
+      analyze: 'Upload & AI Material Analysis',
+      qbank: 'Personalized Question Bank',
+      planner: 'NEET 2027 Study Planner',
+      performance: 'Performance & Revision Insights',
+      saved: 'Saved Questions & Study Notes',
+      settings: 'Settings & API Status',
+    };
+
+    function navigateTo(view) {
+      appState.currentView = view;
+      saveState();
+      updateNavActiveState();
+      renderCurrentView();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateNavActiveState() {
+      const current = appState.currentView;
+      document.getElementById('header-breadcrumb').textContent = viewTitles[current] || 'PikaPrep';
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        const target = btn.getAttribute('data-nav');
+        if (target === current) {
+          btn.className = 'nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 transition';
+        } else {
+          btn.className = 'nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition';
+        }
+      });
+
+      document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        const target = btn.getAttribute('data-nav');
+        if (target === current) {
+          btn.className = 'mobile-nav-btn flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold text-teal-600 dark:text-teal-400 bg-teal-50/70 dark:bg-teal-950/50 transition';
+        } else {
+          btn.className = 'mobile-nav-btn flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium text-slate-500 dark:text-slate-400 transition';
+        }
+      });
+    }
+
+    // =========================================================================
+    // 4. GEMINI AI CLIENT (WITH EXPONENTIAL BACKOFF & STRUCTURED JSON)
+    // =========================================================================
+    async function callGeminiAPI({ parts, systemInstruction, responseSchema, temperature = 0.25 }) {
+      const url = "/api/gemini";
+      const payload = {
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          temperature,
+        }
+      };
+
+      if (systemInstruction) {
+        payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+      }
+
+      if (responseSchema) {
+        payload.generationConfig.responseMimeType = 'application/json';
+        payload.generationConfig.responseSchema = responseSchema;
+      }
+
+      const delays = [1000, 2000, 4000, 8000];
+      let lastError = null;
+
+      for (let attempt = 0; attempt <= delays.length; attempt++) {
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`API HTTP ${response.status}: ${errText.slice(0, 180)}`);
+          }
+
+          const data = await response.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!text) {
+            throw new Error('Empty response received from Gemini AI.');
+          }
+          return responseSchema ? JSON.parse(text) : text;
+        } catch (err) {
+          lastError = err;
+          if (attempt < delays.length) {
+            await new Promise(res => setTimeout(res, delays[attempt]));
+          }
+        }
+      }
+      throw lastError || new Error('Failed to communicate with AI service.');
+    }
+
+    // =========================================================================
+    // 5. FILE EXTRACTION ENGINE (PDF.JS + IMAGE INLINE DATA + TEXT)
+    // =========================================================================
+    async function extractContentFromFile(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      // 1. Plain text / Markdown
+      if (['txt', 'md', 'csv'].includes(ext) || file.type.startsWith('text/')) {
+        const text = await file.text();
+        return {
+          name: file.name,
+          size: file.size,
+          type: file.type || 'text/plain',
+          pageCount: 1,
+          extractedText: text,
+          imageParts: []
+        };
+      }
+
+      // 2. Image files (JPG, JPEG, PNG, WEBP) - Passed directly to Gemini Vision/OCR
+      if (['jpg', 'jpeg', 'png', 'webp'].includes(ext) || file.type.startsWith('image/')) {
+        const base64 = await fileToBase64(file);
+        return {
+          name: file.name,
+          size: file.size,
+          type: file.type || 'image/jpeg',
+          pageCount: 1,
+          extractedText: `[Image Document: ${file.name}]`,
+          imageParts: [{
+            inlineData: {
+              mimeType: file.type || 'image/jpeg',
+              data: base64
+            }
+          }]
+        };
+      }
+
+      // 3. PDF files - Extract page-by-page text; if scanned/handwritten (low text), render pages to JPEG for Gemini Vision OCR
+      if (ext === 'pdf' || file.type === 'application/pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const maxPages = Math.min(pdf.numPages, 15); // Process up to 15 pages per PDF safely
+        let combinedText = '';
+        const imageParts = [];
+
+        for (let p = 1; p <= maxPages; p++) {
+          const page = await pdf.getPage(p);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map(item => item.str).join(' ').trim();
+
+          if (pageText.length > 40) {
+            combinedText += `\n--- [File: ${file.name} | Page ${p}] ---\n${pageText}\n`;
+          } else if (imageParts.length < 6) {
+            // Likely a scanned or handwritten page -> Render page canvas for Gemini OCR
+            const viewport = page.getViewport({ scale: 1.4 });
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            const base64Data = dataUrl.split(',')[1];
+            imageParts.push({
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: base64Data
+              }
+            });
+            combinedText += `\n--- [File: ${file.name} | Page ${p} (Scanned/Handwritten Page Image Attached)] ---\n`;
+          }
+        }
+
+        return {
+          name: file.name,
+          size: file.size,
+          type: 'application/pdf',
+          pageCount: pdf.numPages,
+          extractedText: combinedText.trim(),
+          imageParts
+        };
+      }
+
+      throw new Error(`Unsupported file format: ${file.name}`);
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result;
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // =========================================================================
+    // 6. VIEW 1: HOME DASHBOARD
+    // =========================================================================
+    function renderHomeView() {
+      const totalQ = appState.questions.length;
+      const highYieldQ = appState.questions.filter(q => q.priority === 'High Yield').length;
+      const savedQ = appState.savedIds.length;
+      const solvedQ = Object.keys(appState.attempts).length;
+
+      // Exam countdown calculation
+      const examDateObj = new Date(appState.planner.examDate + 'T09:00:00');
+      const daysRemaining = Math.max(0, Math.ceil((examDateObj - new Date()) / (1000 * 60 * 60 * 24)));
+
+      // Today's study planner progress
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todaysTasks = appState.planner.tasks.filter(t => t.date === todayStr);
+      const completedToday = todaysTasks.filter(t => t.completed).length;
+      const todayPct = todaysTasks.length > 0 ? Math.round((completedToday / todaysTasks.length) * 100) : 0;
+
+      const unsolvedQ = appState.questions.find(q => !appState.attempts[q.id]);
+
+      return `
+        <div class="space-y-6">
+          <!-- Hero Card -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div class="space-y-2.5 max-w-2xl">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 text-xs font-semibold">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>NEET 2027 Personalized AI Engine</span>
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Study material in. Better questions out.
+              </h1>
+              <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+                Upload your notes, discover important NEET topics and build your personalized question bank.
+              </p>
+              <div class="pt-2 flex flex-wrap items-center gap-3">
+                <button onclick="navigateTo('analyze')" class="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold shadow-xs flex items-center gap-2 transition">
+                  <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                  <span>Upload &amp; Analyze Notes</span>
+                </button>
+                ${totalQ > 0 ? `
+                  <button onclick="${unsolvedQ ? `openQuestionDetail('${unsolvedQ.id}')` : `navigateTo('qbank')`}" class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm font-semibold flex items-center gap-2 transition">
+                    <i data-lucide="play" class="w-4 h-4 text-teal-600"></i>
+                    <span>Continue Studying</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Countdown & Daily Progress Widget -->
+            <div class="grid grid-cols-2 lg:grid-cols-1 gap-3 lg:w-64 shrink-0">
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60">
+                <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span>NEET 2027 Countdown</span>
+                  <i data-lucide="clock" class="w-3.5 h-3.5 text-teal-600"></i>
+                </div>
+                <div class="mt-1 flex items-baseline gap-1.5">
+                  <span class="text-2xl font-bold text-slate-900 dark:text-white">${daysRemaining}</span>
+                  <span class="text-xs font-medium text-slate-500 dark:text-slate-400">days left</span>
+                </div>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60">
+                <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span>Today's Study Plan</span>
+                  <span class="font-semibold text-teal-600 dark:text-teal-400">${todayPct}%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mt-2">
+                  <div class="h-full bg-teal-600 rounded-full transition-all duration-500" style="width: ${todayPct}%"></div>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                  ${todaysTasks.length > 0 ? `${completedToday} of ${todaysTasks.length} tasks done` : 'No tasks scheduled today'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-Time Key Metrics Grid -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div onclick="navigateTo('qbank')" class="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 hover:border-teal-300 dark:hover:border-teal-700 transition">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Questions</span>
+                <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
+                  <i data-lucide="layers" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-2">${totalQ}</p>
+              <p class="text-xs text-slate-400 mt-1">Generated from your notes</p>
+            </div>
+
+            <div onclick="filterQBankByPriority('High Yield')" class="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 hover:border-amber-300 dark:hover:border-amber-700 transition">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">High-Yield Questions</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <i data-lucide="flame" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-2">${highYieldQ}</p>
+              <p class="text-xs text-slate-400 mt-1">Top NEET priority concepts</p>
+            </div>
+
+            <div onclick="navigateTo('saved')" class="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 hover:border-indigo-300 dark:hover:border-indigo-700 transition">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Saved Questions</span>
+                <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                  <i data-lucide="bookmark" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-2">${savedQ}</p>
+              <p class="text-xs text-slate-400 mt-1">Bookmarked for revision</p>
+            </div>
+
+            <div onclick="navigateTo('performance')" class="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 hover:border-emerald-300 dark:hover:border-emerald-700 transition">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Solved Questions</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-2">${solvedQ}</p>
+              <p class="text-xs text-slate-400 mt-1">${totalQ > 0 ? Math.round((solvedQ / totalQ) * 100) : 0}% of bank completed</p>
+            </div>
+          </div>
+
+          <!-- Bottom Two Columns: Uploaded Study Materials & Recent Activity -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Uploaded Materials Quick Access -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">Uploaded Study Material</h2>
+                <button onclick="navigateTo('analyze')" class="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline">+ Add Material</button>
+              </div>
+              ${appState.materials.length === 0 ? `
+                <div class="text-center py-8 px-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  <i data-lucide="folder-open" class="w-8 h-8 text-slate-400 mx-auto mb-2"></i>
+                  <p class="text-sm font-medium text-slate-700 dark:text-slate-300">No study material uploaded yet</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Upload PDF notes, NCERT pages, or handwritten photos to begin.</p>
+                </div>
+              ` : `
+                <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                  ${appState.materials.map(m => `
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-9 h-9 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                          <i data-lucide="${m.type.includes('pdf') ? 'file-text' : 'image'}" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">${escapeHtml(m.name)}</p>
+                          <p class="text-xs text-slate-500 dark:text-slate-400">${formatBytes(m.size)} • ${m.pageCount} ${m.pageCount === 1 ? 'page' : 'pages'} • ${formatDateRelative(m.uploadedAt)}</p>
+                        </div>
+                      </div>
+                      <button onclick="navigateTo('analyze')" class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 transition shrink-0">
+                        Open
+                      </button>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">Recent Activity</h2>
+                <span class="text-xs text-slate-400">Live log</span>
+              </div>
+              ${appState.activityLog.length === 0 ? `
+                <div class="text-center py-8 px-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  <i data-lucide="activity" class="w-8 h-8 text-slate-400 mx-auto mb-2"></i>
+                  <p class="text-sm font-medium text-slate-700 dark:text-slate-300">No recent activity</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Your uploads, topic selections, and solved questions appear here.</p>
+                </div>
+              ` : `
+                <div class="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  ${appState.activityLog.slice(0, 8).map(act => `
+                    <div class="flex items-start gap-3 text-sm">
+                      <span class="w-2 h-2 rounded-full bg-teal-500 mt-1.5 shrink-0"></span>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-slate-700 dark:text-slate-300 text-xs sm:text-sm leading-snug">${escapeHtml(act.text)}</p>
+                        <span class="text-[11px] text-slate-400">${formatDateRelative(act.timestamp)}</span>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function filterQBankByPriority(priority) {
+      appState.qbankFilters.priority = priority;
+      appState.qbankFilters.page = 1;
+      navigateTo('qbank');
+    }
+
+    // =========================================================================
+    // 7. VIEW 2: CORE AI MATERIAL ANALYSIS & QUESTION GENERATION WORKFLOW
+    // =========================================================================
+    function renderAnalyzeView() {
+      // Determine active step
+      if (analysisWorkflowStep === 'analyzing') {
+        return renderAnalyzingProgressState();
+      }
+      if (isGeneratingQuestions) {
+        return renderGeneratingProgressState();
+      }
+
+      const hasAnalysis = appState.analysis && appState.analysis.subjects && appState.analysis.subjects.length > 0;
+      if (analysisWorkflowStep === 'upload' && hasAnalysis && pendingUploadFiles.length === 0) {
+        analysisWorkflowStep = 'results';
+      }
+
+      return `
+        <div class="space-y-6">
+          <!-- Step Indicator -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm overflow-x-auto">
+              <button onclick="setWorkflowStep('upload')" class="flex items-center gap-2 font-semibold ${analysisWorkflowStep === 'upload' ? 'text-teal-600 dark:text-teal-400' : 'text-slate-500'}">
+                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs ${analysisWorkflowStep === 'upload' ? 'bg-teal-600 text-white' : 'bg-slate-100 dark:bg-slate-800'}">1</span>
+                <span>Upload Material</span>
+              </button>
+              <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 shrink-0"></i>
+              <button onclick="${hasAnalysis ? `setWorkflowStep('results')` : ''}" class="flex items-center gap-2 font-semibold ${analysisWorkflowStep === 'results' ? 'text-teal-600 dark:text-teal-400' : 'text-slate-500'} ${!hasAnalysis ? 'opacity-50 cursor-not-allowed' : ''}">
+                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs ${analysisWorkflowStep === 'results' ? 'bg-teal-600 text-white' : 'bg-slate-100 dark:bg-slate-800'}">2</span>
+                <span>Review Chapters &amp; Topics</span>
+              </button>
+              <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 shrink-0"></i>
+              <button onclick="${hasAnalysis ? `setWorkflowStep('configure')` : ''}" class="flex items-center gap-2 font-semibold ${analysisWorkflowStep === 'configure' ? 'text-teal-600 dark:text-teal-400' : 'text-slate-500'} ${!hasAnalysis ? 'opacity-50 cursor-not-allowed' : ''}">
+                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs ${analysisWorkflowStep === 'configure' ? 'bg-teal-600 text-white' : 'bg-slate-100 dark:bg-slate-800'}">3</span>
+                <span>Configure &amp; Generate</span>
+              </button>
+            </div>
+            ${hasAnalysis && analysisWorkflowStep !== 'upload' ? `
+              <button onclick="setWorkflowStep('upload')" class="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Upload More Files
+              </button>
+            ` : ''}
+          </div>
+
+          ${analysisWorkflowStep === 'upload' ? renderUploadStep() : ''}
+          ${analysisWorkflowStep === 'results' ? renderAnalysisResultsStep() : ''}
+          ${analysisWorkflowStep === 'configure' ? renderConfigureGenerationStep() : ''}
+        </div>
+      `;
+    }
+
+    function setWorkflowStep(step) {
+      analysisWorkflowStep = step;
+      renderCurrentView();
+    }
+
+    function renderUploadStep() {
+      return `
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Upload Your Study Material</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Supports PDF notes, NCERT chapter PDFs, handwritten note photos (JPG, PNG), and text summaries. Max 8 files (15 MB each).
+            </p>
+          </div>
+
+          <!-- Dropzone -->
+          <div id="dropzone"
+               ondragover="handleDragOver(event)"
+               ondragleave="handleDragLeave(event)"
+               ondrop="handleFileDrop(event)"
+               onclick="document.getElementById('material-file-input').click()"
+               class="cursor-pointer border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-500 rounded-2xl p-8 sm:p-12 text-center bg-slate-50/70 dark:bg-slate-800/40 transition">
+            <input type="file" id="material-file-input" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.md" class="hidden" onchange="handleFileInputChange(event)" />
+            <div class="w-12 h-12 rounded-2xl bg-teal-100 dark:bg-teal-950 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto mb-3">
+              <i data-lucide="file-up" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-200">
+              Tap to choose files or drag &amp; drop here
+            </p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              PDF, JPG, JPEG, PNG, TXT • Handwritten &amp; printed notes supported
+            </p>
+          </div>
+
+          <!-- Selected Files Queue -->
+          ${pendingUploadFiles.length > 0 ? `
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200">Selected Files (${pendingUploadFiles.length}/8)</h3>
+                <button onclick="clearPendingFiles()" class="text-xs text-rose-600 hover:underline">Clear all</button>
+              </div>
+              <div class="space-y-2">
+                ${pendingUploadFiles.map((file, idx) => `
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <i data-lucide="${file.name.toLowerCase().endsWith('.pdf') ? 'file-text' : 'image'}" class="w-4 h-4 text-teal-600 shrink-0"></i>
+                      <div class="min-w-0">
+                        <p class="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">${escapeHtml(file.name)}</p>
+                        <p class="text-xs text-slate-500">${formatBytes(file.size)}</p>
+                      </div>
+                    </div>
+                    <button onclick="removePendingFile(${idx})" aria-label="Remove file" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition">
+                      <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Previously Uploaded Materials Option -->
+          ${appState.materials.length > 0 && pendingUploadFiles.length === 0 ? `
+            <div class="p-4 rounded-xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200/60 dark:border-teal-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-teal-900 dark:text-teal-200">You already have ${appState.materials.length} analyzed file(s) stored</p>
+                <p class="text-xs text-teal-700 dark:text-teal-400">You can re-analyze existing files or upload additional notes above.</p>
+              </div>
+              <button onclick="reanalyzeStoredMaterials()" class="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-teal-300 dark:border-teal-700 text-xs font-semibold text-teal-700 dark:text-teal-300 hover:bg-teal-50 transition shrink-0">
+                Re-Analyze Stored Material
+              </button>
+            </div>
+          ` : ''}
+
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button onclick="startMaterialAnalysis()"
+                    ${pendingUploadFiles.length === 0 ? 'disabled' : ''}
+                    class="px-6 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition ${pendingUploadFiles.length > 0 ? 'bg-teal-600 hover:bg-teal-700 text-white shadow-xs' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'}">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Analyze Material with AI</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('border-teal-500', 'bg-teal-50/40');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('border-teal-500', 'bg-teal-50/40');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('border-teal-500', 'bg-teal-50/40');
+      if (e.dataTransfer?.files) {
+        validateAndAddFiles(Array.from(e.dataTransfer.files));
+      }
+    }
+
+    function handleFileInputChange(e) {
+      if (e.target.files) {
+        validateAndAddFiles(Array.from(e.target.files));
+        e.target.value = '';
+      }
+    }
+
+    function validateAndAddFiles(files) {
+      const allowedExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'txt', 'md'];
+      const maxFileSize = 15 * 1024 * 1024; // 15 MB
+      const maxFiles = 8;
+
+      for (const file of files) {
+        if (pendingUploadFiles.length >= maxFiles) {
+          showToast(`Maximum ${maxFiles} files allowed per batch.`, 'warning');
+          break;
+        }
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!allowedExts.includes(ext)) {
+          showToast(`Unsupported file type: ${file.name}. Use PDF, JPG, PNG, or TXT.`, 'error');
+          continue;
+        }
+        if (file.size > maxFileSize) {
+          showToast(`File too large: ${file.name} exceeds 15 MB limit.`, 'error');
+          continue;
+        }
+        if (file.size === 0) {
+          showToast(`File is empty: ${file.name}.`, 'error');
+          continue;
+        }
+        // Prevent duplicate filenames in queue
+        if (!pendingUploadFiles.some(f => f.name === file.name && f.size === file.size)) {
+          pendingUploadFiles.push(file);
+        }
+      }
+      renderCurrentView();
+    }
+
+    function removePendingFile(index) {
+      pendingUploadFiles.splice(index, 1);
+      renderCurrentView();
+    }
+
+    function clearPendingFiles() {
+      pendingUploadFiles = [];
+      renderCurrentView();
+    }
+
+    function renderAnalyzingProgressState() {
+      return `
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-8 sm:p-12 text-center max-w-xl mx-auto my-6 shadow-xs">
+          <div class="w-16 h-16 rounded-full bg-teal-50 dark:bg-teal-950/70 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto mb-5 animate-pulse-ring">
+            <i data-lucide="brain-circuit" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Analyzing Your Study Material</h3>
+          <p id="analysis-stage-label" class="text-sm font-medium text-teal-600 dark:text-teal-400 mt-2">${escapeHtml(analysisStageText)}</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-3 leading-relaxed">
+            Extracting text &amp; handwritten diagrams, identifying NEET Physics/Chemistry/Biology chapters, and mapping high-yield topics.
+          </p>
+        </div>
+      `;
+    }
+
+    function updateAnalysisStage(text) {
+      analysisStageText = text;
+      const el = document.getElementById('analysis-stage-label');
+      if (el) el.textContent = text;
+    }
+
+    async function startMaterialAnalysis() {
+      if (pendingUploadFiles.length === 0) {
+        showToast('Please select at least one study file first.', 'warning');
+        return;
+      }
+
+      analysisWorkflowStep = 'analyzing';
+      analysisStageText = 'Extracting content from uploaded files...';
+      renderCurrentView();
+
+      try {
+        const extractedMaterials = [];
+        for (let i = 0; i < pendingUploadFiles.length; i++) {
+          const f = pendingUploadFiles[i];
+          updateAnalysisStage(`Extracting content (${i + 1}/${pendingUploadFiles.length}): ${f.name}`);
+          const extracted = await extractContentFromFile(f);
+          extractedMaterials.push({
+            id: 'mat_' + Date.now() + '_' + i,
+            uploadedAt: new Date().toISOString(),
+            ...extracted
+          });
+        }
+
+        // Save extracted materials into state
+        appState.materials = [...extractedMaterials, ...appState.materials].slice(0, 12);
+        pendingUploadFiles = [];
+        saveState();
+
+        await runAIAnalysisOnMaterials(extractedMaterials);
+      } catch (err) {
+        console.error('Analysis error:', err);
+        analysisWorkflowStep = 'upload';
+        renderCurrentView();
+        showToast(err.message || 'Failed to analyze uploaded material. Please try again.', 'error');
+      }
+    }
+
+    async function reanalyzeStoredMaterials() {
+      if (appState.materials.length === 0) return;
+      analysisWorkflowStep = 'analyzing';
+      analysisStageText = 'Preparing stored study material...';
+      renderCurrentView();
+      try {
+        await runAIAnalysisOnMaterials(appState.materials);
+      } catch (err) {
+        analysisWorkflowStep = 'upload';
+        renderCurrentView();
+        showToast(err.message || 'Analysis failed.', 'error');
+      }
+    }
+
+    async function runAIAnalysisOnMaterials(materialsList) {
+      updateAnalysisStage('Identifying NEET subjects, chapters & high-yield topics...');
+
+      const parts = [];
+      let combinedCorpus = '';
+
+      for (const mat of materialsList) {
+        if (mat.extractedText) {
+          combinedCorpus += `\n=== SOURCE FILE: ${mat.name} ===\n${mat.extractedText.slice(0, 22000)}\n`;
+        }
+        if (mat.imageParts && mat.imageParts.length > 0) {
+          for (const imgPart of mat.imageParts.slice(0, 4)) {
+            parts.push(imgPart);
+          }
+        }
+      }
+
+      const promptText = `
+Analyze the attached NEET study material (text and/or handwritten/scanned page images).
+Extract and organize the actual academic syllabus structure present in this material into:
+1. Subjects (strictly classify under "Physics", "Chemistry", or "Biology" based on the content).
+2. Chapters present in the material.
+3. Specific Topics covered under each chapter, along with a concise concept summary grounded strictly in the uploaded material and whether it is a high-yield NEET exam area.
+
+IMPORTANT RULES:
+- Only detect subjects, chapters, and topics actually supported by the provided material. Do not invent unrelated chapters.
+- If the image contains handwritten notes or diagrams, transcribe and interpret the scientific concepts accurately.
+- Return structured JSON matching the schema.
+
+STUDY MATERIAL TEXT:
+${combinedCorpus || 'Refer to the attached handwritten/scanned document images.'}
+      `.trim();
+
+      parts.unshift({ text: promptText });
+
+      const schema = {
+        type: 'OBJECT',
+        properties: {
+          summary: { type: 'STRING' },
+          subjects: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                name: { type: 'STRING' },
+                chapters: {
+                  type: 'ARRAY',
+                  items: {
+                    type: 'OBJECT',
+                    properties: {
+                      name: { type: 'STRING' },
+                      topics: {
+                        type: 'ARRAY',
+                        items: {
+                          type: 'OBJECT',
+                          properties: {
+                            name: { type: 'STRING' },
+                            conceptSummary: { type: 'STRING' },
+                            isHighYield: { type: 'BOOLEAN' },
+                            sourceFile: { type: 'STRING' }
+                          },
+                          required: ['name', 'conceptSummary', 'isHighYield']
+                        }
+                      }
+                    },
+                    required: ['name', 'topics']
+                  }
+                }
+              },
+              required: ['name', 'chapters']
+            }
+          }
+        },
+        required: ['summary', 'subjects']
+      };
+
+      updateAnalysisStage('Structuring chapters & topics...');
+      const aiResult = await callGeminiAPI({
+        parts,
+        systemInstruction: 'You are an expert NEET-UG academic curriculum analyzer. Extract accurate subjects, chapters, and topics strictly from the student\'s uploaded notes.',
+        responseSchema: schema,
+        temperature: 0.2
+      });
+
+      // Assign deterministic unique IDs and select all by default
+      const allChapterIds = [];
+      const allTopicIds = [];
+
+      const structuredSubjects = (aiResult.subjects || []).map((subj, sIdx) => ({
+        id: `subj_${sIdx}_${Date.now()}`,
+        name: subj.name,
+        chapters: (subj.chapters || []).map((chap, cIdx) => {
+          const chapId = `chap_${sIdx}_${cIdx}_${Date.now()}`;
+          allChapterIds.push(chapId);
+          return {
+            id: chapId,
+            name: chap.name,
+            topics: (chap.topics || []).map((top, tIdx) => {
+              const topId = `top_${sIdx}_${cIdx}_${tIdx}_${Date.now()}`;
+              allTopicIds.push(topId);
+              return {
+                id: topId,
+                name: top.name,
+                conceptSummary: top.conceptSummary || '',
+                isHighYield: Boolean(top.isHighYield),
+                sourceFile: top.sourceFile || (materialsList[0]?.name || 'Uploaded Notes')
+              };
+            })
+          };
+        })
+      }));
+
+      if (structuredSubjects.length === 0) {
+        throw new Error('Could not detect clear NEET chapters from the uploaded files. Please upload clearer notes.');
+      }
+
+      appState.analysis = {
+        analyzedAt: new Date().toISOString(),
+        summary: aiResult.summary || 'Analysis completed.',
+        subjects: structuredSubjects
+      };
+
+      // Select all detected chapters and topics initially
+      appState.selection.selectedChapterIds = allChapterIds;
+      appState.selection.selectedTopicIds = allTopicIds;
+
+      // Expand first subject by default
+      expandedSubjects = { [structuredSubjects[0].id]: true };
+      expandedChapters = {};
+      if (structuredSubjects[0].chapters[0]) {
+        expandedChapters[structuredSubjects[0].chapters[0].id] = true;
+      }
+
+      analysisWorkflowStep = 'results';
+      logActivity(`Analyzed ${materialsList.length} file(s): detected ${allChapterIds.length} chapters & ${allTopicIds.length} topics.`);
+      saveState();
+      renderCurrentView();
+      showToast('Material analysis complete!', 'success');
+    }
+
+    function renderAnalysisResultsStep() {
+      const analysis = appState.analysis;
+      if (!analysis || !analysis.subjects) return renderUploadStep();
+
+      let totalSubjects = analysis.subjects.length;
+      let totalChapters = 0;
+      let totalTopics = 0;
+      analysis.subjects.forEach(s => {
+        totalChapters += s.chapters.length;
+        s.chapters.forEach(c => {
+          totalTopics += c.topics.length;
+        });
+      });
+
+      const selectedChapCount = appState.selection.selectedChapterIds.length;
+      const selectedTopCount = appState.selection.selectedTopicIds.length;
+      const isAllSelected = selectedTopCount === totalTopics && totalTopics > 0;
+
+      return `
+        <div class="space-y-5">
+          <!-- Detection Summary Card -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400">AI Detection Summary</span>
+                <h2 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1">
+                  Detected: ${totalSubjects} ${totalSubjects === 1 ? 'Subject' : 'Subjects'} • ${totalChapters} ${totalChapters === 1 ? 'Chapter' : 'Chapters'} • ${totalTopics} ${totalTopics === 1 ? 'Topic' : 'Topics'}
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">${escapeHtml(analysis.summary)}</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button onclick="toggleSelectAllTopics()" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border transition flex items-center gap-2 ${isAllSelected ? 'bg-teal-50 dark:bg-teal-950/60 border-teal-300 dark:border-teal-700 text-teal-700 dark:text-teal-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50'}">
+                  <i data-lucide="${isAllSelected ? 'check-square' : 'square'}" class="w-4 h-4"></i>
+                  <span>All Topics (${totalTopics})</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Selection Status Bar -->
+            <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
+              <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                <span class="w-2.5 h-2.5 rounded-full ${selectedTopCount > 0 ? 'bg-teal-500' : 'bg-amber-500'}"></span>
+                <span>Selected for question generation: <strong>${selectedChapCount} Chapters</strong>, <strong>${selectedTopCount} Topics</strong></span>
+              </div>
+              <button onclick="proceedToGenerationSettings()"
+                      ${selectedTopCount === 0 ? 'disabled' : ''}
+                      class="px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition ${selectedTopCount > 0 ? 'bg-teal-600 hover:bg-teal-700 text-white shadow-xs' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'}">
+                <span>Analyze &amp; Continue</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Expandable Subjects, Chapters & Topics -->
+          <div class="space-y-4">
+            ${analysis.subjects.map(subj => {
+              const isSubjExpanded = Boolean(expandedSubjects[subj.id]);
+              const visibleChapters = showAllChaptersMap[subj.id] ? subj.chapters : subj.chapters.slice(0, 4);
+              const hasMoreChapters = subj.chapters.length > 4;
+
+              return `
+                <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+                  <!-- Subject Header -->
+                  <button onclick="toggleSubjectExpand('${subj.id}')" class="w-full px-5 py-4 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/70 dark:hover:bg-slate-800 transition text-left">
+                    <div class="flex items-center gap-3">
+                      <span class="w-8 h-8 rounded-xl bg-teal-600/10 text-teal-700 dark:text-teal-300 flex items-center justify-center font-bold text-xs">
+                        ${escapeHtml(subj.name.slice(0, 3).toUpperCase())}
+                      </span>
+                      <div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">${escapeHtml(subj.name)}</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">${subj.chapters.length} ${subj.chapters.length === 1 ? 'chapter' : 'chapters'} detected</p>
+                      </div>
+                    </div>
+                    <i data-lucide="${isSubjExpanded ? 'chevron-up' : 'chevron-down'}" class="w-5 h-5 text-slate-400"></i>
+                  </button>
+
+                  <!-- Chapters List -->
+                  ${isSubjExpanded ? `
+                    <div class="p-4 sm:p-5 space-y-3">
+                      ${visibleChapters.map(chap => {
+                        const isChapChecked = appState.selection.selectedChapterIds.includes(chap.id);
+                        const selectedInChap = chap.topics.filter(t => appState.selection.selectedTopicIds.includes(t.id)).length;
+                        const isIndeterminate = selectedInChap > 0 && selectedInChap < chap.topics.length;
+                        const isChapExpanded = Boolean(expandedChapters[chap.id]);
+                        const visibleTopics = showAllTopicsMap[chap.id] ? chap.topics : chap.topics.slice(0, 4);
+                        const hasMoreTopics = chap.topics.length > 4;
+
+                        return `
+                          <div class="border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden">
+                            <div class="px-4 py-3 bg-white dark:bg-slate-900 flex items-center justify-between gap-3">
+                              <label class="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+                                <input type="checkbox"
+                                       ${isChapChecked || isIndeterminate ? 'checked' : ''}
+                                       onchange="toggleChapterSelection('${chap.id}')"
+                                       class="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer" />
+                                <div class="min-w-0">
+                                  <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">${escapeHtml(chap.name)}</p>
+                                  <p class="text-xs text-slate-500 dark:text-slate-400">${selectedInChap}/${chap.topics.length} topics selected</p>
+                                </div>
+                              </label>
+                              <button onclick="toggleChapterExpand('${chap.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1 shrink-0">
+                                <span>Topics</span>
+                                <i data-lucide="${isChapExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
+                              </button>
+                            </div>
+
+                            ${isChapExpanded ? `
+                              <div class="px-4 py-3 bg-slate-50/60 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                                ${visibleTopics.map(top => {
+                                  const isTopChecked = appState.selection.selectedTopicIds.includes(top.id);
+                                  return `
+                                    <label class="flex items-start gap-3 p-2 rounded-lg hover:bg-white dark:hover:bg-slate-800 cursor-pointer transition">
+                                      <input type="checkbox"
+                                             ${isTopChecked ? 'checked' : ''}
+                                             onchange="toggleTopicSelection('${chap.id}', '${top.id}')"
+                                             class="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer" />
+                                      <div class="flex-1 min-w-0">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                          <span class="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200">${escapeHtml(top.name)}</span>
+                                          ${top.isHighYield ? `<span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">High Yield</span>` : ''}
+                                        </div>
+                                        ${top.conceptSummary ? `<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">${escapeHtml(top.conceptSummary)}</p>` : ''}
+                                      </div>
+                                    </label>
+                                  `;
+                                }).join('')}
+
+                                ${hasMoreTopics ? `
+                                  <button onclick="toggleShowAllTopics('${chap.id}')" class="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline pt-1">
+                                    ${showAllTopicsMap[chap.id] ? 'Show fewer topics' : `Show all ${chap.topics.length} topics (+${chap.topics.length - 4} more)`}
+                                  </button>
+                                ` : ''}
+                              </div>
+                            ` : ''}
+                          </div>
+                        `;
+                      }).join('')}
+
+                      ${hasMoreChapters ? `
+                        <button onclick="toggleShowAllChapters('${subj.id}')" class="w-full py-2 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-teal-50/50 dark:hover:bg-teal-950/30 rounded-xl transition">
+                          ${showAllChaptersMap[subj.id] ? 'Show first 4 chapters' : `View all ${subj.chapters.length} chapters (+${subj.chapters.length - 4} more)`}
+                        </button>
+                      ` : ''}
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleSubjectExpand(subjId) {
+      expandedSubjects[subjId] = !expandedSubjects[subjId];
+      renderCurrentView();
+    }
+
+    function toggleChapterExpand(chapId) {
+      expandedChapters[chapId] = !expandedChapters[chapId];
+      renderCurrentView();
+    }
+
+    function toggleShowAllChapters(subjId) {
+      showAllChaptersMap[subjId] = !showAllChaptersMap[subjId];
+      renderCurrentView();
+    }
+
+    function toggleShowAllTopics(chapId) {
+      showAllTopicsMap[chapId] = !showAllTopicsMap[chapId];
+      renderCurrentView();
+    }
+
+    function toggleSelectAllTopics() {
+      if (!appState.analysis) return;
+      const allChapIds = [];
+      const allTopIds = [];
+      appState.analysis.subjects.forEach(s => {
+        s.chapters.forEach(c => {
+          allChapIds.push(c.id);
+          c.topics.forEach(t => allTopIds.push(t.id));
+        });
+      });
+
+      const isCurrentlyAll = appState.selection.selectedTopicIds.length === allTopIds.length;
+      if (isCurrentlyAll) {
+        appState.selection.selectedChapterIds = [];
+        appState.selection.selectedTopicIds = [];
+      } else {
+        appState.selection.selectedChapterIds = allChapIds;
+        appState.selection.selectedTopicIds = allTopIds;
+      }
+      saveState();
+      renderCurrentView();
+    }
+
+    function toggleChapterSelection(chapId) {
+      if (!appState.analysis) return;
+      let targetChapter = null;
+      for (const s of appState.analysis.subjects) {
+        const found = s.chapters.find(c => c.id === chapId);
+        if (found) { targetChapter = found; break; }
+      }
+      if (!targetChapter) return;
+
+      const chapTopicIds = targetChapter.topics.map(t => t.id);
+      const isSelected = appState.selection.selectedChapterIds.includes(chapId);
+
+      if (isSelected) {
+        appState.selection.selectedChapterIds = appState.selection.selectedChapterIds.filter(id => id !== chapId);
+        appState.selection.selectedTopicIds = appState.selection.selectedTopicIds.filter(id => !chapTopicIds.includes(id));
+      } else {
+        appState.selection.selectedChapterIds.push(chapId);
+        for (const tid of chapTopicIds) {
+          if (!appState.selection.selectedTopicIds.includes(tid)) {
+            appState.selection.selectedTopicIds.push(tid);
+          }
+        }
+      }
+      saveState();
+      renderCurrentView();
+    }
+
+    function toggleTopicSelection(chapId, topicId) {
+      if (!appState.analysis) return;
+      const idx = appState.selection.selectedTopicIds.indexOf(topicId);
+      if (idx > -1) {
+        appState.selection.selectedTopicIds.splice(idx, 1);
+      } else {
+        appState.selection.selectedTopicIds.push(topicId);
+      }
+
+      // Sync parent chapter selection state
+      let targetChapter = null;
+      for (const s of appState.analysis.subjects) {
+        const found = s.chapters.find(c => c.id === chapId);
+        if (found) { targetChapter = found; break; }
+      }
+      if (targetChapter) {
+        const anySelected = targetChapter.topics.some(t => appState.selection.selectedTopicIds.includes(t.id));
+        const hasChap = appState.selection.selectedChapterIds.includes(chapId);
+        if (anySelected && !hasChap) {
+          appState.selection.selectedChapterIds.push(chapId);
+        } else if (!anySelected && hasChap) {
+          appState.selection.selectedChapterIds = appState.selection.selectedChapterIds.filter(id => id !== chapId);
+        }
+      }
+
+      saveState();
+      renderCurrentView();
+    }
+
+    function proceedToGenerationSettings() {
+      if (appState.selection.selectedTopicIds.length === 0) {
+        showToast('Select at least one topic before continuing.', 'warning');
+        return;
+      }
+      analysisWorkflowStep = 'configure';
+      renderCurrentView();
+    }
+
+    // =========================================================================
+    // 8. STEP 4: QUESTION GENERATION SETTINGS & ENGINE
+    // =========================================================================
+    function getSelectedTopicsDetails() {
+      if (!appState.analysis) return [];
+      const selectedSet = new Set(appState.selection.selectedTopicIds);
+      const list = [];
+      for (const subj of appState.analysis.subjects) {
+        for (const chap of subj.chapters) {
+          for (const top of chap.topics) {
+            if (selectedSet.has(top.id)) {
+              list.push({
+                subject: subj.name,
+                chapter: chap.name,
+                topic: top.name,
+                conceptSummary: top.conceptSummary,
+                isHighYield: top.isHighYield,
+                sourceFile: top.sourceFile
+              });
+            }
+          }
+        }
+      }
+      return list;
+    }
+
+    function renderConfigureGenerationStep() {
+      const cfg = appState.generationConfig;
+      const selectedTopics = getSelectedTopicsDetails();
+      const uniqueChapters = [...new Set(selectedTopics.map(t => t.chapter))];
+
+      return `
+        <div class="max-w-3xl mx-auto space-y-5">
+          <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-xs">
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Configure NEET Question Generation</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Customize language, coverage depth, and NEET question patterns for your selected topics.
+            </p>
+
+            <div class="mt-6 space-y-4">
+              <!-- Group A: Language -->
+              <div class="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2.5">A. Question Language</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  ${['English + Hindi', 'English', 'Hindi'].map(opt => `
+                    <button type="button" onclick="updateGenConfig('language', '${opt}')"
+                            class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium border text-left flex items-center justify-between transition ${cfg.language === opt ? 'bg-teal-600 text-white border-teal-600 shadow-xs' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-teal-400'}">
+                      <span>${opt}</span>
+                      ${cfg.language === opt ? '<i data-lucide="check" class="w-4 h-4"></i>' : ''}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Group B: Question Coverage -->
+              <div class="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2.5">B. Question Coverage</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  ${[
+                    { id: 'Important', desc: 'Core high-yield exam concepts' },
+                    { id: 'Important + Expected', desc: 'High-yield + likely NEET twists' },
+                    { id: 'Maximum Coverage', desc: 'Comprehensive concept sweep' }
+                  ].map(item => `
+                    <button type="button" onclick="updateGenConfig('coverage', '${item.id}')"
+                            class="p-3 rounded-xl border text-left transition ${cfg.coverage === item.id ? 'bg-teal-50 dark:bg-teal-950/60 border-teal-500 text-teal-900 dark:text-teal-200' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-teal-400'}">
+                      <div class="text-xs sm:text-sm font-semibold">${item.id}</div>
+                      <div class="text-[11px] opacity-80 mt-0.5">${item.desc}</div>
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Group C: Question Pattern -->
+              <div class="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2.5">C. Question Pattern</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  ${['All NEET Patterns', 'MCQ Only', 'MCQ + Assertion-Reason', 'Assertion-Reason Only'].map(pat => `
+                    <button type="button" onclick="updateGenConfig('pattern', '${pat}')"
+                            class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium border text-left flex items-center justify-between transition ${cfg.pattern === pat ? 'bg-teal-600 text-white border-teal-600 shadow-xs' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-teal-400'}">
+                      <span>${pat}</span>
+                      ${cfg.pattern === pat ? '<i data-lucide="check" class="w-4 h-4"></i>' : ''}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Group D: Selected Chapters & Topics Review -->
+              <div class="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    D. Chapters &amp; Topics (${uniqueChapters.length} Chapters, ${selectedTopics.length} Topics)
+                  </label>
+                  <button onclick="setWorkflowStep('results')" class="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline">
+                    Modify Selection
+                  </button>
+                </div>
+                <div class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pt-1">
+                  ${selectedTopics.map(t => `
+                    <span class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300">
+                      ${escapeHtml(t.topic)}
+                    </span>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <button onclick="setWorkflowStep('results')" class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                ← Back to Topics
+              </button>
+              <button onclick="generateNEETQuestions()" class="px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                <span>Generate NEET Questions</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateGenConfig(key, value) {
+      appState.generationConfig[key] = value;
+      saveState();
+      renderCurrentView();
+    }
+
+    function renderGeneratingProgressState() {
+      return `
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-8 sm:p-12 text-center max-w-xl mx-auto my-6 shadow-xs">
+          <div class="w-16 h-16 rounded-full bg-teal-50 dark:bg-teal-950/70 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto mb-5 animate-pulse-ring">
+            <i data-lucide="sparkles" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Crafting Personalized NEET Questions</h3>
+          <p id="gen-stage-label" class="text-sm font-medium text-teal-600 dark:text-teal-400 mt-2">${escapeHtml(generationStatusText)}</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-3 leading-relaxed">
+            Generating scientifically accurate questions strictly from your selected chapters, complete with step-by-step explanations and source references.
+          </p>
+        </div>
+      `;
+    }
+
+    async function generateNEETQuestions(singleTopicOverride = null) {
+      const selectedTopics = singleTopicOverride ? [singleTopicOverride] : getSelectedTopicsDetails();
+      if (selectedTopics.length === 0) {
+        showToast('Please select at least one topic first.', 'warning');
+        return;
+      }
+
+      const cfg = appState.generationConfig;
+      const targetCount = singleTopicOverride ? 1 : (cfg.coverage === 'Important' ? 5 : cfg.coverage === 'Important + Expected' ? 7 : 9);
+
+      isGeneratingQuestions = true;
+      generationStatusText = `Generating ${targetCount} NEET-standard question(s) from ${selectedTopics.length} selected topic(s)...`;
+      if (!singleTopicOverride) renderCurrentView();
+
+      try {
+        // Gather relevant source text excerpts
+        const sourceContext = appState.materials
+          .map(m => `[Source File: ${m.name}]\n${(m.extractedText || '').slice(0, 14000)}`)
+          .join('\n\n')
+          .slice(0, 28000);
+
+        const existingStems = appState.questions.slice(0, 25).map(q => q.en?.question || '').join(' | ');
+
+        const prompt = `
+Generate ${targetCount} original, NEET-UG standard exam questions based STRICTLY on the student's selected topics and study material below.
+
+SELECTED TOPICS (DO NOT generate questions outside these topics):
+${JSON.stringify(selectedTopics, null, 2)}
+
+GENERATION SETTINGS:
+- Language Mode: ${cfg.language} (Always populate BOTH English ("en") and Hindi ("hi") fields accurately so the student can switch languages anytime without mixing languages).
+- Coverage Depth: ${cfg.coverage}
+- Allowed Question Pattern: ${cfg.pattern} (For "MCQ Only", set pattern to "MCQ". For "Assertion-Reason Only", set pattern to "Assertion-Reason" with Assertion (A) and Reason (R) in question text and standard 4 NEET A-R options. For "All NEET Patterns" or "MCQ + Assertion-Reason", include a balanced mix of "MCQ" and "Assertion-Reason").
+
+AVOID DUPLICATING THESE EXISTING QUESTIONS:
+${existingStems || 'None yet'}
+
+SOURCE STUDY MATERIAL EXCERPTS:
+${sourceContext || 'Use the verified concept summaries provided in the selected topics above.'}
+
+STRICT SCIENTIFIC & NEET QUALITY RULES:
+1. Every question must have 4 options (index 0, 1, 2, 3) with exact 1 correct answer ("correctIndex").
+2. Preserve all chemical formulas, units, biological nomenclature, and mathematical symbols accurately.
+3. For Hindi ("hi"), provide clean, natural, scientifically accurate Hindi translation (Devanagari script) using standard NTA NEET Hindi terminology. Never corrupt or mix English sentences inside Hindi fields except standard symbols/formulas.
+4. Assign "priority" meaningfully as "High Yield", "Important", or "Expected" based on NEET weightage.
+5. Provide "whyThisQuestion" explaining why NTA asks this concept in NEET.
+6. Provide "sourceReference" citing the exact file name and topic from the material (never invent fake page numbers if not explicitly present).
+        `.trim();
+
+        const questionSchema = {
+          type: 'OBJECT',
+          properties: {
+            questions: {
+              type: 'ARRAY',
+              items: {
+                type: 'OBJECT',
+                properties: {
+                  subject: { type: 'STRING' },
+                  chapter: { type: 'STRING' },
+                  topic: { type: 'STRING' },
+                  pattern: { type: 'STRING' },
+                  difficulty: { type: 'STRING' },
+                  priority: { type: 'STRING' },
+                  sourceReference: { type: 'STRING' },
+                  en: {
+                    type: 'OBJECT',
+                    properties: {
+                      question: { type: 'STRING' },
+                      options: { type: 'ARRAY', items: { type: 'STRING' } },
+                      explanation: { type: 'STRING' },
+                      whyThisQuestion: { type: 'STRING' }
+                    },
+                    required: ['question', 'options', 'explanation', 'whyThisQuestion']
+                  },
+                  hi: {
+                    type: 'OBJECT',
+                    properties: {
+                      question: { type: 'STRING' },
+                      options: { type: 'ARRAY', items: { type: 'STRING' } },
+                      explanation: { type: 'STRING' },
+                      whyThisQuestion: { type: 'STRING' }
+                    },
+                    required: ['question', 'options', 'explanation', 'whyThisQuestion']
+                  },
+                  correctIndex: { type: 'INTEGER' }
+                },
+                required: ['subject', 'chapter', 'topic', 'pattern', 'difficulty', 'priority', 'sourceReference', 'en', 'hi', 'correctIndex']
+              }
+            }
+          },
+          required: ['questions']
+        };
+
+        const result = await callGeminiAPI({
+          parts: [{ text: prompt }],
+          systemInstruction: 'You are a senior NTA NEET-UG question paper setter for Physics, Chemistry, and Biology. Generate accurate, conceptual, bilingual (English & Hindi) NEET questions grounded in the provided student notes.',
+          responseSchema: questionSchema,
+          temperature: 0.35
+        });
+
+        const generated = (result.questions || []).map((q, idx) => ({
+          id: `q_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+          subject: normalizeSubject(q.subject),
+          chapter: q.chapter,
+          topic: q.topic,
+          pattern: q.pattern.includes('Assertion') ? 'Assertion-Reason' : 'MCQ',
+          difficulty: q.difficulty || 'Moderate',
+          priority: ['High Yield', 'Important', 'Expected'].includes(q.priority) ? q.priority : 'Important',
+          sourceReference: q.sourceReference || 'Uploaded Study Material',
+          en: {
+            question: q.en.question,
+            options: (q.en.options || []).slice(0, 4),
+            explanation: q.en.explanation,
+            whyThisQuestion: q.en.whyThisQuestion
+          },
+          hi: {
+            question: q.hi.question,
+            options: (q.hi.options || []).slice(0, 4),
+            explanation: q.hi.explanation,
+            whyThisQuestion: q.hi.whyThisQuestion
+          },
+          correctIndex: Math.min(3, Math.max(0, Number(q.correctIndex) || 0)),
+          createdAt: new Date().toISOString()
+        }));
+
+        if (generated.length === 0) {
+          throw new Error('AI did not return valid questions. Please retry.');
+        }
+
+        appState.questions = [...generated, ...appState.questions];
+        isGeneratingQuestions = false;
+        analysisWorkflowStep = 'results';
+        logActivity(`Generated ${generated.length} new NEET question(s) from selected topics.`);
+        saveState();
+
+        if (singleTopicOverride) {
+          showToast('Generated 1 fresh question on this topic!', 'success');
+          openQuestionDetail(generated[0].id);
+        } else {
+          showToast(`Generated ${generated.length} personalized NEET questions!`, 'success');
+          navigateTo('qbank');
+        }
+      } catch (err) {
+        console.error('Generation failed:', err);
+        isGeneratingQuestions = false;
+        renderCurrentView();
+        showToast(err.message || 'Question generation failed. Please check connection and retry.', 'error');
+      }
+    }
+
+    function normalizeSubject(subj) {
+      const s = (subj || '').toLowerCase();
+      if (s.includes('phys')) return 'Physics';
+      if (s.includes('chem')) return 'Chemistry';
+      return 'Biology';
+    }
+
+    // =========================================================================
+    // 9. VIEW 3: QUESTION BANK
+    // =========================================================================
+    function renderQBankView() {
+      const f = appState.qbankFilters;
+      const allQ = appState.questions;
+
+      // Dynamic chapter & topic dropdown options based on current questions
+      const chapters = ['All', ...new Set(allQ.filter(q => f.subject === 'All' || q.subject === f.subject).map(q => q.chapter))];
+      const topics = ['All', ...new Set(allQ.filter(q => (f.subject === 'All' || q.subject === f.subject) && (f.chapter === 'All' || q.chapter === f.chapter)).map(q => q.topic))];
+
+      // Filter questions
+      const filtered = allQ.filter(q => {
+        if (f.subject !== 'All' && q.subject !== f.subject) return false;
+        if (f.chapter !== 'All' && q.chapter !== f.chapter) return false;
+        if (f.topic !== 'All' && q.topic !== f.topic) return false;
+        if (f.pattern !== 'All' && q.pattern !== f.pattern) return false;
+        if (f.priority !== 'All' && q.priority !== f.priority) return false;
+        if (f.search.trim()) {
+          const term = f.search.toLowerCase();
+          const matchEn = (q.en?.question || '').toLowerCase().includes(term);
+          const matchHi = (q.hi?.question || '').toLowerCase().includes(term);
+          const matchMeta = `${q.chapter} ${q.topic}`.toLowerCase().includes(term);
+          if (!matchEn && !matchHi && !matchMeta) return false;
+        }
+        return true;
+      });
+
+      const totalPages = Math.max(1, Math.ceil(filtered.length / f.pageSize));
+      if (f.page > totalPages) f.page = totalPages;
+      const startIdx = (f.page - 1) * f.pageSize;
+      const pageItems = filtered.slice(startIdx, startIdx + f.pageSize);
+
+      const displayLang = appState.settings.globalLanguage;
+
+      return `
+        <div class="space-y-5">
+          <!-- Header & Search -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h1 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Question Bank (${filtered.length})</h1>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Practice NEET-standard questions generated strictly from your study notes.</p>
+              </div>
+              <button onclick="navigateTo('analyze')" class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 self-start sm:self-auto transition">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Generate More</span>
+              </button>
+            </div>
+
+            <!-- Subject Pills -->
+            <div class="flex flex-wrap items-center gap-2">
+              ${['All', 'Biology', 'Chemistry', 'Physics'].map(sub => `
+                <button onclick="updateQBankFilter('subject', '${sub}')"
+                        class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition ${f.subject === sub ? 'bg-teal-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70'}">
+                  ${sub}
+                </button>
+              `).join('')}
+            </div>
+
+            <!-- Advanced Filter Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+              <div class="lg:col-span-2 relative">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text"
+                       value="${escapeHtml(f.search)}"
+                       oninput="updateQBankFilter('search', this.value)"
+                       placeholder="Search questions, chapters, topics..."
+                       class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm focus:outline-none focus:border-teal-500" />
+              </div>
+
+              <select onchange="updateQBankFilter('chapter', this.value)" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm">
+                ${chapters.map(c => `<option value="${escapeHtml(c)}" ${f.chapter === c ? 'selected' : ''}>${c === 'All' ? 'All Chapters' : escapeHtml(c)}</option>`).join('')}
+              </select>
+
+              <select onchange="updateQBankFilter('pattern', this.value)" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm">
+                <option value="All" ${f.pattern === 'All' ? 'selected' : ''}>All Patterns</option>
+                <option value="MCQ" ${f.pattern === 'MCQ' ? 'selected' : ''}>MCQ</option>
+                <option value="Assertion-Reason" ${f.pattern === 'Assertion-Reason' ? 'selected' : ''}>Assertion-Reason</option>
+              </select>
+
+              <select onchange="updateQBankFilter('priority', this.value)" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm">
+                <option value="All" ${f.priority === 'All' ? 'selected' : ''}>All Priorities</option>
+                <option value="High Yield" ${f.priority === 'High Yield' ? 'selected' : ''}>High Yield</option>
+                <option value="Important" ${f.priority === 'Important' ? 'selected' : ''}>Important</option>
+                <option value="Expected" ${f.priority === 'Expected' ? 'selected' : ''}>Expected</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Questions List -->
+          ${allQ.length === 0 ? `
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-10 text-center">
+              <i data-lucide="layers" class="w-10 h-10 text-slate-400 mx-auto mb-3"></i>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Your Question Bank is Empty</h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Upload your study notes and select chapters to generate your first batch of NEET-standard questions.
+              </p>
+              <button onclick="navigateTo('analyze')" class="mt-4 px-5 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition">
+                Upload Study Material
+              </button>
+            </div>
+          ` : filtered.length === 0 ? `
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-8 text-center">
+              <p class="text-sm font-medium text-slate-700 dark:text-slate-300">No questions match your current filters.</p>
+              <button onclick="resetQBankFilters()" class="mt-3 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-teal-600 dark:text-teal-400">
+                Reset Filters
+              </button>
+            </div>
+          ` : `
+            <div class="space-y-3">
+              ${pageItems.map((q, index) => {
+                const attempt = appState.attempts[q.id];
+                const isSaved = appState.savedIds.includes(q.id);
+                const hasNote = Boolean(appState.notes[q.id]?.text);
+                const qText = displayLang === 'hi' ? (q.hi?.question || q.en?.question) : (q.en?.question || '');
+
+                return `
+                  <div onclick="openQuestionDetail('${q.id}')" class="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-600 rounded-2xl p-4 sm:p-5 shadow-2xs transition">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                      <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
+                        <span class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">${escapeHtml(q.subject)}</span>
+                        <span class="px-2.5 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300">${escapeHtml(q.chapter)}</span>
+                        <span class="px-2.5 py-0.5 rounded-lg ${q.priority === 'High Yield' ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300' : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300'}">${escapeHtml(q.priority)}</span>
+                        <span class="px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">${escapeHtml(q.pattern)}</span>
+                      </div>
+
+                      <div class="flex items-center gap-2" onclick="event.stopPropagation()">
+                        ${attempt ? `
+                          <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${attempt.isCorrect ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'}">
+                            ${attempt.isCorrect ? 'Solved ✓' : 'Incorrect ✕'}
+                          </span>
+                        ` : ''}
+                        ${hasNote ? `<span title="Has personal note" class="text-teal-600"><i data-lucide="file-edit" class="w-4 h-4"></i></span>` : ''}
+                        <button onclick="toggleSaveQuestion('${q.id}')" aria-label="Save question" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 ${isSaved ? 'text-amber-500' : 'text-slate-400'}">
+                          <i data-lucide="bookmark" class="w-4 h-4 ${isSaved ? 'fill-current' : ''}"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <p class="text-sm sm:text-base font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-relaxed">
+                      <span class="text-slate-400 font-semibold mr-1">Q${startIdx + index + 1}.</span>
+                      ${escapeHtml(qText)}
+                    </p>
+                    ${displayLang === 'bilingual' && q.hi?.question ? `
+                      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mt-1">${escapeHtml(q.hi.question)}</p>
+                    ` : ''}
+
+                    <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
+                      <span>Topic: <strong class="font-medium text-slate-700 dark:text-slate-300">${escapeHtml(q.topic)}</strong></span>
+                      <span class="text-teal-600 dark:text-teal-400 font-semibold flex items-center gap-1">
+                        Solve <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                      </span>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- Pagination -->
+            ${totalPages > 1 ? `
+              <div class="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl px-4 py-3 text-xs sm:text-sm">
+                <button onclick="changeQBankPage(${f.page - 1})" ${f.page <= 1 ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40">Previous</button>
+                <span class="font-medium text-slate-600 dark:text-slate-300">Page ${f.page} of ${totalPages}</span>
+                <button onclick="changeQBankPage(${f.page + 1})" ${f.page >= totalPages ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40">Next</button>
+              </div>
+            ` : ''}
+          `}
+        </div>
+      `;
+    }
+
+    function updateQBankFilter(key, value) {
+      appState.qbankFilters[key] = value;
+      if (key === 'subject') {
+        appState.qbankFilters.chapter = 'All';
+        appState.qbankFilters.topic = 'All';
+      }
+      appState.qbankFilters.page = 1;
+      saveState();
+      renderCurrentView();
+    }
+
+    function resetQBankFilters() {
+      appState.qbankFilters = {
+        subject: 'All', chapter: 'All', topic: 'All', pattern: 'All', priority: 'All', search: '', page: 1, pageSize: 10
+      };
+      saveState();
+      renderCurrentView();
+    }
+
+    function changeQBankPage(newPage) {
+      appState.qbankFilters.page = newPage;
+      saveState();
+      renderCurrentView();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // =========================================================================
+    // 10. QUESTION DETAIL MODAL EXPERIENCE (BILINGUAL, SINGLE ATTEMPT, NOTES)
+    // =========================================================================
+    let pendingSelectedOption = null;
+
+    function openQuestionDetail(questionId) {
+      const q = appState.questions.find(item => item.id === questionId);
+      if (!q) return;
+      appState.activeQuestionId = questionId;
+      appState.activeQuestionLang = appState.settings.globalLanguage;
+      const existingAttempt = appState.attempts[questionId];
+      pendingSelectedOption = existingAttempt ? existingAttempt.selectedIndex : null;
+
+      const modal = document.getElementById('question-modal');
+      modal.classList.remove('hidden');
+      renderQuestionModal(questionId);
+    }
+
+    function closeQuestionModal() {
+      appState.activeQuestionId = null;
+      pendingSelectedOption = null;
+      document.getElementById('question-modal').classList.add('hidden');
+      renderCurrentView();
+    }
+
+    function switchIndividualQuestionLang(lang) {
+      // Preserves pendingSelectedOption and does NOT alter attempt count!
+      appState.activeQuestionLang = lang;
+      if (appState.activeQuestionId) {
+        renderQuestionModal(appState.activeQuestionId);
+      }
+    }
+
+    function selectQuestionOption(index) {
+      const qId = appState.activeQuestionId;
+      if (!qId || appState.attempts[qId]) return; // Locked once submitted
+      pendingSelectedOption = index;
+      renderQuestionModal(qId);
+    }
+
+    function submitQuestionAnswer() {
+      const qId = appState.activeQuestionId;
+      const q = appState.questions.find(item => item.id === qId);
+      if (!q || pendingSelectedOption === null) {
+        showToast('Please select an option before submitting.', 'warning');
+        return;
+      }
+      // Record attempt only once
+      if (!appState.attempts[qId]) {
+        const isCorrect = pendingSelectedOption === q.correctIndex;
+        appState.attempts[qId] = {
+          selectedIndex: pendingSelectedOption,
+          isCorrect,
+          attemptedAt: new Date().toISOString()
+        };
+        logActivity(`Solved ${q.subject} (${q.topic}): ${isCorrect ? 'Correct' : 'Incorrect'}`);
+        saveState();
+      }
+      renderQuestionModal(qId);
+    }
+
+    function toggleSaveQuestion(questionId) {
+      const idx = appState.savedIds.indexOf(questionId);
+      if (idx > -1) {
+        appState.savedIds.splice(idx, 1);
+        showToast('Removed from Saved Questions.', 'info');
+      } else {
+        appState.savedIds.push(questionId);
+        showToast('Saved question for revision!', 'success');
+      }
+      saveState();
+      if (appState.activeQuestionId === questionId) {
+        renderQuestionModal(questionId);
+      } else {
+        renderCurrentView();
+      }
+    }
+
+    function savePersonalNoteForQuestion(questionId) {
+      const textarea = document.getElementById('modal-note-input');
+      if (!textarea) return;
+      const text = textarea.value.trim();
+      if (!text) {
+        delete appState.notes[questionId];
+        showToast('Note cleared.', 'info');
+      } else {
+        appState.notes[questionId] = {
+          text,
+          updatedAt: new Date().toISOString()
+        };
+        showToast('Study note saved!', 'success');
+      }
+      saveState();
+      renderQuestionModal(questionId);
+    }
+
+    function renderQuestionModal(questionId) {
+      const q = appState.questions.find(item => item.id === questionId);
+      if (!q) return;
+
+      const lang = appState.activeQuestionLang || appState.settings.globalLanguage;
+      const attempt = appState.attempts[questionId];
+      const isSubmitted = Boolean(attempt);
+      const selectedIdx = isSubmitted ? attempt.selectedIndex : pendingSelectedOption;
+      const isSaved = appState.savedIds.includes(questionId);
+      const existingNote = appState.notes[questionId]?.text || '';
+      const optionLabels = ['A', 'B', 'C', 'D'];
+
+      const container = document.getElementById('question-modal-content');
+      container.innerHTML = `
+        <div class="space-y-5">
+          <!-- Top Meta & Close -->
+          <div class="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div class="space-y-1.5">
+              <div class="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+                <span class="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">${escapeHtml(q.subject)}</span>
+                <span class="px-2.5 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300">${escapeHtml(q.chapter)}</span>
+                <span class="px-2.5 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300">${escapeHtml(q.priority)}</span>
+                <span class="px-2.5 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500">${escapeHtml(q.pattern)}</span>
+              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Topic: <strong class="text-slate-700 dark:text-slate-300">${escapeHtml(q.topic)}</strong></p>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              <!-- Per-Question Language Switch -->
+              <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 text-xs font-medium">
+                <button onclick="switchIndividualQuestionLang('bilingual')" class="px-2 py-1 rounded-lg ${lang === 'bilingual' ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-2xs' : 'text-slate-500'}">EN+HI</button>
+                <button onclick="switchIndividualQuestionLang('en')" class="px-2 py-1 rounded-lg ${lang === 'en' ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-2xs' : 'text-slate-500'}">EN</button>
+                <button onclick="switchIndividualQuestionLang('hi')" class="px-2 py-1 rounded-lg ${lang === 'hi' ? 'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-2xs' : 'text-slate-500'}">HI</button>
+              </div>
+
+              <button onclick="closeQuestionModal()" aria-label="Close" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Question Stem -->
+          <div class="space-y-2.5">
+            ${lang !== 'hi' ? `
+              <p class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white leading-relaxed whitespace-pre-line">${escapeHtml(q.en.question)}</p>
+            ` : ''}
+            ${lang !== 'en' ? `
+              <p class="text-base sm:text-lg font-medium ${lang === 'bilingual' ? 'text-slate-600 dark:text-slate-300 pt-2 border-t border-dashed border-slate-200 dark:border-slate-800' : 'text-slate-900 dark:text-white'} leading-relaxed whitespace-pre-line">${escapeHtml(q.hi.question)}</p>
+            ` : ''}
+          </div>
+
+          <!-- Answer Options -->
+          <div class="space-y-2.5">
+            ${[0, 1, 2, 3].map(idx => {
+              const enOpt = q.en.options[idx] || '';
+              const hiOpt = q.hi.options[idx] || '';
+              let cardClass = 'border-slate-200 dark:border-slate-700 hover:border-teal-400 bg-white dark:bg-slate-900';
+
+              if (!isSubmitted && selectedIdx === idx) {
+                cardClass = 'border-teal-600 bg-teal-50/70 dark:bg-teal-950/50 ring-1 ring-teal-600';
+              } else if (isSubmitted) {
+                if (idx === q.correctIndex) {
+                  cardClass = 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/50 ring-1 ring-emerald-500';
+                } else if (idx === selectedIdx && idx !== q.correctIndex) {
+                  cardClass = 'border-rose-500 bg-rose-50/80 dark:bg-rose-950/50 ring-1 ring-rose-500';
+                } else {
+                  cardClass = 'border-slate-200/70 dark:border-slate-800 opacity-70';
+                }
+              }
+
+              return `
+                <button type="button"
+                        ${isSubmitted ? 'disabled' : ''}
+                        onclick="selectQuestionOption(${idx})"
+                        class="w-full p-3.5 sm:p-4 rounded-xl border text-left flex items-start gap-3 transition ${cardClass}">
+                  <span class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${isSubmitted && idx === q.correctIndex ? 'bg-emerald-600 text-white' : isSubmitted && idx === selectedIdx ? 'bg-rose-600 text-white' : selectedIdx === idx ? 'bg-teal-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}">
+                    ${optionLabels[idx]}
+                  </span>
+                  <div class="flex-1 text-sm leading-relaxed">
+                    ${lang !== 'hi' ? `<div class="font-medium text-slate-800 dark:text-slate-100">${escapeHtml(enOpt)}</div>` : ''}
+                    ${lang !== 'en' ? `<div class="${lang === 'bilingual' ? 'text-xs text-slate-500 dark:text-slate-400 mt-0.5' : 'font-medium text-slate-800 dark:text-slate-100'}">${escapeHtml(hiOpt)}</div>` : ''}
+                  </div>
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Submit Button (Before Submission) -->
+          ${!isSubmitted ? `
+            <div class="flex justify-end pt-1">
+              <button onclick="submitQuestionAnswer()" class="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold shadow-xs transition">
+                Submit Answer
+              </button>
+            </div>
+          ` : `
+            <!-- Feedback & Detailed Explanation (After Submission) -->
+            <div class="space-y-4 pt-2">
+              <div class="p-4 rounded-xl border ${attempt.isCorrect ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' : 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800'}">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-bold ${attempt.isCorrect ? 'text-emerald-800 dark:text-emerald-300' : 'text-rose-800 dark:text-rose-300'}">
+                    ${attempt.isCorrect ? '✓ Correct Answer! (+4 Marks)' : `✕ Incorrect (-1 Mark) • Correct Option: ${optionLabels[q.correctIndex]}`}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Detailed Explanation -->
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700 space-y-2">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Detailed Explanation</h4>
+                ${lang !== 'hi' ? `<p class="text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line">${escapeHtml(q.en.explanation)}</p>` : ''}
+                ${lang !== 'en' ? `<p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line ${lang === 'bilingual' ? 'pt-2 border-t border-slate-200 dark:border-slate-700' : ''}">${escapeHtml(q.hi.explanation)}</p>` : ''}
+              </div>
+
+              <!-- Why This Question & Source Reference -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="p-3.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/50">
+                  <span class="text-xs font-bold text-amber-800 dark:text-amber-300 block mb-1">Why this question?</span>
+                  <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                    ${escapeHtml(lang === 'hi' ? q.hi.whyThisQuestion : q.en.whyThisQuestion)}
+                  </p>
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700">
+                  <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Source Reference</span>
+                  <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    ${escapeHtml(q.sourceReference)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          `}
+
+          <!-- Personal Study Note Section -->
+          <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="pen-line" class="w-3.5 h-3.5 text-teal-600"></i>
+              <span>Personal Revision Note</span>
+            </label>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <textarea id="modal-note-input" rows="2" placeholder="Write a quick memory trick, formula, or NCERT line for this question..." class="flex-1 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm focus:outline-none focus:border-teal-500">${escapeHtml(existingNote)}</textarea>
+              <button onclick="savePersonalNoteForQuestion('${q.id}')" class="px-4 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white text-xs font-semibold shrink-0 self-end sm:self-stretch transition">
+                Save Note
+              </button>
+            </div>
+          </div>
+
+          <!-- Footer Actions: Save Question & Make Another Question -->
+          <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+            <button onclick="toggleSaveQuestion('${q.id}')" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition ${isSaved ? 'text-amber-600 border-amber-300 bg-amber-50/50 dark:bg-amber-950/30' : 'text-slate-700 dark:text-slate-300'}">
+              <i data-lucide="bookmark" class="w-4 h-4 ${isSaved ? 'fill-current' : ''}"></i>
+              <span>${isSaved ? 'Saved' : 'Save Question'}</span>
+            </button>
+
+            <button onclick="generateAnotherFromQuestion('${q.id}')" class="px-4 py-2 rounded-xl bg-teal-50 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 text-xs sm:text-sm font-semibold flex items-center gap-2 hover:bg-teal-100 transition">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Make Another Question</span>
+            </button>
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    function generateAnotherFromQuestion(questionId) {
+      const q = appState.questions.find(item => item.id === questionId);
+      if (!q) return;
+      showToast('Generating another NEET question on this topic...', 'info');
+      generateNEETQuestions({
+        subject: q.subject,
+        chapter: q.chapter,
+        topic: q.topic,
+        conceptSummary: q.en.explanation,
+        isHighYield: q.priority === 'High Yield',
+        sourceFile: q.sourceReference
+      });
+    }
+
+    // =========================================================================
+    // 11. VIEW 4: STUDY PLANNER
+    // =========================================================================
+    function renderPlannerView() {
+      const pl = appState.planner;
+      const examDateObj = new Date(pl.examDate + 'T09:00:00');
+      const daysRemaining = Math.max(0, Math.ceil((examDateObj - new Date()) / (1000 * 60 * 60 * 24)));
+      const weeklyHours = pl.dailyHours * pl.availableDays.length;
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const missedTasks = pl.tasks.filter(t => !t.completed && t.date < todayStr);
+      const todaysTasks = pl.tasks.filter(t => t.date === todayStr);
+      const upcomingTasks = pl.tasks.filter(t => t.date > todayStr);
+      const completedCount = pl.tasks.filter(t => t.completed).length;
+      const overallPct = pl.tasks.length > 0 ? Math.round((completedCount / pl.tasks.length) * 100) : 0;
+
+      return `
+        <div class="space-y-6">
+          <!-- Top Overview Stats -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4">
+              <span class="text-xs text-slate-500">Days Remaining</span>
+              <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">${daysRemaining}</p>
+              <span class="text-[11px] text-teal-600">Exam: ${pl.examDate}</span>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4">
+              <span class="text-xs text-slate-500">Weekly Study Hours</span>
+              <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">${weeklyHours} hrs</p>
+              <span class="text-[11px] text-slate-400">${pl.dailyHours}h/day × ${pl.availableDays.length} days</span>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4">
+              <span class="text-xs text-slate-500">Completed Tasks</span>
+              <p class="text-2xl font-bold text-emerald-600 mt-1">${completedCount}</p>
+              <span class="text-[11px] text-slate-400">Out of ${pl.tasks.length} total</span>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4">
+              <span class="text-xs text-slate-500">Overall Progress</span>
+              <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">${overallPct}%</p>
+              <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
+                <div class="h-full bg-teal-600 rounded-full" style="width: ${overallPct}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Missed Tasks Rescheduling Alert -->
+          ${missedTasks.length > 0 ? `
+            <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">You have ${missedTasks.length} overdue study task(s) from earlier days</p>
+                <p class="text-xs text-amber-700 dark:text-amber-400">Reschedule them evenly starting today so nothing falls behind.</p>
+              </div>
+              <button onclick="rescheduleMissedTasks()" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shrink-0 transition">
+                Reschedule Missed Tasks
+              </button>
+            </div>
+          ` : ''}
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Planner Configuration Panel -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 space-y-4 h-fit">
+              <h2 class="text-base font-bold text-slate-900 dark:text-white">Study Schedule Settings</h2>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Target NEET Exam Date</label>
+                <input type="date" value="${pl.examDate}" onchange="updatePlannerField('examDate', this.value)"
+                       class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Daily Available Hours: ${pl.dailyHours} hrs</label>
+                <input type="range" min="1" max="14" value="${pl.dailyHours}" oninput="updatePlannerField('dailyHours', Number(this.value))"
+                       class="w-full accent-teal-600" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Available Study Days</label>
+                <div class="flex flex-wrap gap-1.5">
+                  ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                    const active = pl.availableDays.includes(day);
+                    return `
+                      <button type="button" onclick="togglePlannerDay('${day}')"
+                              class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${active ? 'bg-teal-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}">
+                        ${day}
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400">Subject Priorities</label>
+                ${['Biology', 'Chemistry', 'Physics'].map(sub => `
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-medium text-slate-700 dark:text-slate-300">${sub}</span>
+                    <select onchange="updateSubjectPriority('${sub}', this.value)" class="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                      ${['High', 'Medium', 'Low'].map(p => `<option value="${p}" ${pl.priorities[sub] === p ? 'selected' : ''}>${p}</option>`).join('')}
+                    </select>
+                  </div>
+                `).join('')}
+              </div>
+
+              <button onclick="generateSmartStudySchedule()" class="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition">
+                <i data-lucide="wand-2" class="w-4 h-4"></i>
+                <span>Generate Smart Schedule</span>
+              </button>
+            </div>
+
+            <!-- Tasks List & Add Custom Task -->
+            <div class="lg:col-span-2 space-y-5">
+              <!-- Quick Add Task -->
+              <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white mb-3">Add Study Task</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                  <select id="new-task-subject" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm">
+                    <option value="Biology">Biology</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Physics">Physics</option>
+                  </select>
+                  <input type="text" id="new-task-title" placeholder="Chapter / Topic to revise..." class="sm:col-span-2 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm" />
+                  <button onclick="addCustomPlannerTask()" class="px-4 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-xs sm:text-sm font-semibold hover:bg-slate-900 transition">
+                    + Add Task
+                  </button>
+                </div>
+              </div>
+
+              <!-- Today's Tasks -->
+              <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 space-y-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-base font-bold text-slate-900 dark:text-white">Today's Tasks (${todaysTasks.length})</h3>
+                  <span class="text-xs text-slate-400">${todayStr}</span>
+                </div>
+                ${todaysTasks.length === 0 ? `
+                  <p class="text-xs sm:text-sm text-slate-500 py-4 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                    No tasks scheduled for today. Click "Generate Smart Schedule" or add a task above.
+                  </p>
+                ` : `
+                  <div class="space-y-2">
+                    ${todaysTasks.map(t => renderPlannerTaskRow(t)).join('')}
+                  </div>
+                `}
+              </div>
+
+              <!-- Upcoming Tasks -->
+              ${upcomingTasks.length > 0 ? `
+                <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 space-y-3">
+                  <h3 class="text-base font-bold text-slate-900 dark:text-white">Upcoming Schedule (${upcomingTasks.length})</h3>
+                  <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    ${upcomingTasks.map(t => renderPlannerTaskRow(t, true)).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPlannerTaskRow(task, showDate = false) {
+      return `
+        <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800 ${task.completed ? 'bg-slate-50/60 dark:bg-slate-800/30 opacity-75' : 'bg-white dark:bg-slate-900'}">
+          <div class="flex items-center gap-3 min-w-0">
+            <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="togglePlannerTask('${task.id}')"
+                   class="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer" />
+            <div class="min-w-0">
+              <p class="text-xs sm:text-sm font-medium ${task.completed ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'} truncate">
+                ${escapeHtml(task.title)}
+              </p>
+              <div class="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+                <span class="font-semibold text-teal-600 dark:text-teal-400">${escapeHtml(task.subject)}</span>
+                <span>• ${task.durationMins} mins</span>
+                ${showDate ? `<span>• ${task.date}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <button onclick="deletePlannerTask('${task.id}')" aria-label="Delete task" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    function updatePlannerField(key, val) {
+      appState.planner[key] = val;
+      saveState();
+      renderCurrentView();
+    }
+
+    function togglePlannerDay(day) {
+      const days = appState.planner.availableDays;
+      const idx = days.indexOf(day);
+      if (idx > -1 && days.length > 1) {
+        days.splice(idx, 1);
+      } else if (idx === -1) {
+        days.push(day);
+      }
+      saveState();
+      renderCurrentView();
+    }
+
+    function updateSubjectPriority(sub, priority) {
+      appState.planner.priorities[sub] = priority;
+      saveState();
+    }
+
+    function addCustomPlannerTask() {
+      const subj = document.getElementById('new-task-subject').value;
+      const titleInput = document.getElementById('new-task-title');
+      const title = titleInput.value.trim();
+      if (!title) {
+        showToast('Enter a task title first.', 'warning');
+        return;
+      }
+      const todayStr = new Date().toISOString().split('T')[0];
+      appState.planner.tasks.unshift({
+        id: 'task_' + Date.now(),
+        date: todayStr,
+        subject: subj,
+        title,
+        durationMins: 60,
+        completed: false
+      });
+      titleInput.value = '';
+      saveState();
+      renderCurrentView();
+      showToast('Task added to today\'s planner.', 'success');
+    }
+
+    function togglePlannerTask(taskId) {
+      const task = appState.planner.tasks.find(t => t.id === taskId);
+      if (!task) return;
+      task.completed = !task.completed;
+      if (task.completed) {
+        logActivity(`Completed study task: ${task.title}`);
+      }
+      saveState();
+      renderCurrentView();
+    }
+
+    function deletePlannerTask(taskId) {
+      appState.planner.tasks = appState.planner.tasks.filter(t => t.id !== taskId);
+      saveState();
+      renderCurrentView();
+    }
+
+    function rescheduleMissedTasks() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      let count = 0;
+      appState.planner.tasks.forEach((t, idx) => {
+        if (!t.completed && t.date < todayStr) {
+          const offsetDays = Math.floor(count / 2); // Spread 2 missed tasks per day
+          const newDate = new Date();
+          newDate.setDate(newDate.getDate() + offsetDays);
+          t.date = newDate.toISOString().split('T')[0];
+          count++;
+        }
+      });
+      saveState();
+      renderCurrentView();
+      showToast(`Rescheduled ${count} missed task(s) starting today.`, 'success');
+    }
+
+    function generateSmartStudySchedule() {
+      // Build realistic tasks from analyzed chapters/topics + core NEET subjects weighted by priorities
+      const weightMap = { High: 3, Medium: 2, Low: 1 };
+      const pool = [];
+
+      if (appState.analysis && appState.analysis.subjects) {
+        appState.analysis.subjects.forEach(s => {
+          const subjNorm = normalizeSubject(s.name);
+          const w = weightMap[appState.planner.priorities[subjNorm]] || 2;
+          s.chapters.forEach(c => {
+            for (let i = 0; i < w; i++) {
+              pool.push({
+                subject: subjNorm,
+                title: `${c.name}: Concept Review & Practice (${c.topics.length} topics)`
+              });
+            }
+          });
+        });
+      }
+
+      if (pool.length === 0) {
+        // Fallback structured NEET revision blocks if no notes uploaded yet
+        const defaults = [
+          { subject: 'Biology', title: 'NCERT Human Physiology — Line-by-Line Revision & MCQs' },
+          { subject: 'Physics', title: 'Electrostatics & Current Electricity — Formula & Numerical Drill' },
+          { subject: 'Chemistry', title: 'Organic Chemistry Reaction Mechanisms — Named Reactions Practice' },
+          { subject: 'Biology', title: 'Genetics & Molecular Basis of Inheritance — Assertion-Reason Set' },
+          { subject: 'Chemistry', title: 'Chemical Bonding & Coordination Compounds — High-Yield Review' },
+          { subject: 'Physics', title: 'Ray Optics & Modern Physics — PYQ & Concept Practice' }
+        ];
+        pool.push(...defaults);
+      }
+
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const tasksPerDay = Math.max(1, Math.min(4, Math.floor(appState.planner.dailyHours / 1.5)));
+      const newTasks = [];
+      let poolIdx = 0;
+
+      // Schedule next 7 available study days
+      for (let dayOffset = 0; dayOffset < 10 && newTasks.length < 14; dayOffset++) {
+        const d = new Date();
+        d.setDate(d.getDate() + dayOffset);
+        const dayName = dayNames[d.getDay()];
+        if (!appState.planner.availableDays.includes(dayName)) continue;
+
+        const dateStr = d.toISOString().split('T')[0];
+        for (let slot = 0; slot < tasksPerDay; slot++) {
+          const item = pool[poolIdx % pool.length];
+          poolIdx++;
+          newTasks.push({
+            id: `plan_${Date.now()}_${dayOffset}_${slot}`,
+            date: dateStr,
+            subject: item.subject,
+            title: item.title,
+            durationMins: Math.round((appState.planner.dailyHours * 60) / tasksPerDay),
+            completed: false
+          });
+        }
+      }
+
+      // Keep completed tasks and replace pending auto-generated schedule
+      const completedExisting = appState.planner.tasks.filter(t => t.completed);
+      appState.planner.tasks = [...completedExisting, ...newTasks];
+      logActivity(`Generated a smart ${newTasks.length}-task NEET study schedule.`);
+      saveState();
+      renderCurrentView();
+      showToast(`Scheduled ${newTasks.length} study sessions across your available days!`, 'success');
+    }
+
+    // =========================================================================
+    // 12. VIEW 5: PERFORMANCE & ANALYTICS
+    // =========================================================================
+    function renderPerformanceView() {
+      const attemptIds = Object.keys(appState.attempts);
+      const totalAttempted = attemptIds.length;
+      let correctCount = 0;
+      let incorrectCount = 0;
+
+      const subjectStats = {
+        Biology: { attempted: 0, correct: 0 },
+        Chemistry: { attempted: 0, correct: 0 },
+        Physics: { attempted: 0, correct: 0 }
+      };
+
+      const patternStats = {
+        MCQ: { attempted: 0, correct: 0 },
+        'Assertion-Reason': { attempted: 0, correct: 0 }
+      };
+
+      const chapterStats = {};
+
+      attemptIds.forEach(qId => {
+        const att = appState.attempts[qId];
+        const q = appState.questions.find(item => item.id === qId);
+        if (!q) return;
+
+        if (att.isCorrect) correctCount++;
+        else incorrectCount++;
+
+        const sub = normalizeSubject(q.subject);
+        subjectStats[sub].attempted++;
+        if (att.isCorrect) subjectStats[sub].correct++;
+
+        const pat = q.pattern === 'Assertion-Reason' ? 'Assertion-Reason' : 'MCQ';
+        patternStats[pat].attempted++;
+        if (att.isCorrect) patternStats[pat].correct++;
+
+        if (!chapterStats[q.chapter]) {
+          chapterStats[q.chapter] = { subject: sub, attempted: 0, correct: 0 };
+        }
+        chapterStats[q.chapter].attempted++;
+        if (att.isCorrect) chapterStats[q.chapter].correct++;
+      });
+
+      const accuracy = totalAttempted > 0 ? Math.round((correctCount / totalAttempted) * 100) : 0;
+      const netNeetScore = (correctCount * 4) - (incorrectCount * 1);
+
+      // Identify weak chapters (< 65% accuracy)
+      const chapterEntries = Object.entries(chapterStats).map(([name, st]) => ({
+        name,
+        subject: st.subject,
+        attempted: st.attempted,
+        correct: st.correct,
+        accuracy: Math.round((st.correct / st.attempted) * 100)
+      })).sort((a, b) => a.accuracy - b.accuracy);
+
+      const weakAreas = chapterEntries.filter(c => c.accuracy < 65);
+
+      return `
+        <div class="space-y-6">
+          <!-- Top Accuracy & Score Cards -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5">
+              <span class="text-xs text-slate-500">Total Attempted</span>
+              <p class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-1">${totalAttempted}</p>
+              <span class="text-xs text-slate-400">Out of ${appState.questions.length} generated</span>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5">
+              <span class="text-xs text-slate-500">Overall Accuracy</span>
+              <p class="text-2xl sm:text-3xl font-bold text-teal-600 mt-1">${accuracy}%</p>
+              <span class="text-xs text-slate-400">${correctCount} Correct • ${incorrectCount} Incorrect</span>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5">
+              <span class="text-xs text-slate-500">Practice NEET Score</span>
+              <p class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-1">${netNeetScore}</p>
+              <span class="text-xs text-slate-400">+4 Correct / -1 Incorrect</span>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5">
+              <span class="text-xs text-slate-500">Weak Chapters Flagged</span>
+              <p class="text-2xl sm:text-3xl font-bold ${weakAreas.length > 0 ? 'text-amber-600' : 'text-emerald-600'} mt-1">${weakAreas.length}</p>
+              <span class="text-xs text-slate-400">Below 65% accuracy</span>
+            </div>
+          </div>
+
+          ${totalAttempted === 0 ? `
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-10 text-center">
+              <i data-lucide="bar-chart-2" class="w-10 h-10 text-slate-400 mx-auto mb-3"></i>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">No Performance Data Yet</h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                Solve questions in your Question Bank to unlock real-time subject accuracy, chapter breakdowns, and revision recommendations.
+              </p>
+              <button onclick="navigateTo('qbank')" class="mt-4 px-5 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition">
+                Go to Question Bank
+              </button>
+            </div>
+          ` : `
+            <!-- Subject-wise & Pattern-wise Breakdown -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Subject-Wise Accuracy</h2>
+                <div class="space-y-4">
+                  ${['Biology', 'Chemistry', 'Physics'].map(sub => {
+                    const st = subjectStats[sub];
+                    const pct = st.attempted > 0 ? Math.round((st.correct / st.attempted) * 100) : 0;
+                    return `
+                      <div>
+                        <div class="flex justify-between text-xs sm:text-sm font-medium mb-1.5">
+                          <span class="text-slate-800 dark:text-slate-200">${sub}</span>
+                          <span class="text-slate-500">${st.correct}/${st.attempted} (${pct}%)</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div class="h-full bg-teal-600 rounded-full transition-all" style="width: ${pct}%"></div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+
+              <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Question Pattern Performance</h2>
+                <div class="space-y-4">
+                  ${['MCQ', 'Assertion-Reason'].map(pat => {
+                    const st = patternStats[pat];
+                    const pct = st.attempted > 0 ? Math.round((st.correct / st.attempted) * 100) : 0;
+                    return `
+                      <div>
+                        <div class="flex justify-between text-xs sm:text-sm font-medium mb-1.5">
+                          <span class="text-slate-800 dark:text-slate-200">${pat}</span>
+                          <span class="text-slate-500">${st.correct}/${st.attempted} (${pct}%)</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div class="h-full bg-indigo-600 rounded-full transition-all" style="width: ${pct}%"></div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            </div>
+
+            <!-- Chapter-wise Performance & Revision Insights -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 space-y-3">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Chapter-Wise Breakdown</h2>
+                <div class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                  ${chapterEntries.map(c => `
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">${escapeHtml(c.name)}</p>
+                        <p class="text-[11px] text-slate-500">${c.subject} • ${c.correct}/${c.attempted} correct</p>
+                      </div>
+                      <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${c.accuracy >= 75 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : c.accuracy >= 50 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'}">
+                        ${c.accuracy}%
+                      </span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 space-y-3">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">What to Revise Next</h2>
+                ${weakAreas.length === 0 ? `
+                  <div class="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/50 text-xs sm:text-sm text-emerald-800 dark:text-emerald-300">
+                    Great accuracy across all attempted chapters! Generate "Important + Expected" or "Assertion-Reason" questions to push your score higher.
+                  </div>
+                ` : `
+                  <div class="space-y-2.5">
+                    ${weakAreas.slice(0, 4).map(w => `
+                      <div class="p-3.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/50 flex items-center justify-between gap-3">
+                        <div class="min-w-0">
+                          <p class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">${escapeHtml(w.name)}</p>
+                          <p class="text-xs text-amber-700 dark:text-amber-400">Accuracy: ${w.accuracy}% — Needs targeted concept review</p>
+                        </div>
+                        <button onclick="practiceChapterFromInsights('${escapeHtml(w.name)}')" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-xs font-semibold text-amber-800 dark:text-amber-300 shrink-0">
+                          Practice
+                        </button>
+                      </div>
+                    `).join('')}
+                  </div>
+                `}
+              </div>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function practiceChapterFromInsights(chapterName) {
+      appState.qbankFilters.chapter = chapterName;
+      appState.qbankFilters.page = 1;
+      navigateTo('qbank');
+    }
+
+    // =========================================================================
+    // 13. VIEW 6: SAVED & NOTES
+    // =========================================================================
+    function renderSavedView() {
+      const savedQuestions = appState.savedIds
+        .map(id => appState.questions.find(q => q.id === id))
+        .filter(Boolean)
+        .filter(q => appState.savedFilterSubject === 'All' || q.subject === appState.savedFilterSubject)
+        .filter(q => {
+          if (!appState.savedSearch.trim()) return true;
+          const t = appState.savedSearch.toLowerCase();
+          return `${q.en?.question} ${q.hi?.question} ${q.chapter} ${q.topic}`.toLowerCase().includes(t);
+        });
+
+      const noteEntries = Object.entries(appState.notes)
+        .map(([qId, noteObj]) => ({
+          question: appState.questions.find(q => q.id === qId),
+          note: noteObj
+        }))
+        .filter(item => item.question && item.note?.text);
+
+      return `
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Saved Questions Column -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4">
+              <div class="flex items-center justify-between">
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Saved Questions (${savedQuestions.length})</h2>
+              </div>
+
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input type="text" value="${escapeHtml(appState.savedSearch)}" oninput="updateSavedSearch(this.value)" placeholder="Search saved..." class="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm" />
+                <select onchange="updateSavedSubjectFilter(this.value)" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm">
+                  ${['All', 'Biology', 'Chemistry', 'Physics'].map(s => `<option value="${s}" ${appState.savedFilterSubject === s ? 'selected' : ''}>${s}</option>`).join('')}
+                </select>
+              </div>
+
+              ${savedQuestions.length === 0 ? `
+                <div class="text-center py-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  <p class="text-sm font-medium text-slate-600 dark:text-slate-400">No saved questions found.</p>
+                  <p class="text-xs text-slate-400 mt-1">Bookmark tricky questions while practicing to review them here.</p>
+                </div>
+              ` : `
+                <div class="space-y-3 max-h-[32rem] overflow-y-auto pr-1">
+                  ${savedQuestions.map(q => `
+                    <div class="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-teal-400 transition space-y-2">
+                      <div class="flex items-center justify-between gap-2 text-[11px] font-semibold">
+                        <span class="text-teal-600 dark:text-teal-400">${escapeHtml(q.subject)} • ${escapeHtml(q.chapter)}</span>
+                        <button onclick="toggleSaveQuestion('${q.id}')" class="text-rose-500 hover:underline">Remove</button>
+                      </div>
+                      <p onclick="openQuestionDetail('${q.id}')" class="cursor-pointer text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-2">
+                        ${escapeHtml(q.en.question)}
+                      </p>
+                      <button onclick="openQuestionDetail('${q.id}')" class="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline">
+                        Open Question →
+                      </button>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+
+            <!-- Personal Notes Column -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 space-y-4">
+              <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Personal Revision Notes (${noteEntries.length})</h2>
+
+              ${noteEntries.length === 0 ? `
+                <div class="text-center py-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  <p class="text-sm font-medium text-slate-600 dark:text-slate-400">No personal notes added yet.</p>
+                  <p class="text-xs text-slate-400 mt-1">Open any question and add your own formulas or NCERT memory tricks.</p>
+                </div>
+              ` : `
+                <div class="space-y-3 max-h-[32rem] overflow-y-auto pr-1">
+                  ${noteEntries.map(({ question: q, note }) => `
+                    <div class="p-4 rounded-xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/50 space-y-2">
+                      <div class="flex items-center justify-between text-[11px]">
+                        <span class="font-semibold text-slate-600 dark:text-slate-400">${escapeHtml(q.subject)} • ${escapeHtml(q.topic)}</span>
+                        <button onclick="deleteNoteFromList('${q.id}')" class="text-rose-500 hover:underline">Delete</button>
+                      </div>
+                      <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line font-medium">${escapeHtml(note.text)}</p>
+                      <div class="pt-1 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 truncate max-w-[65%]">Re: ${escapeHtml(q.en.question)}</span>
+                        <button onclick="openQuestionDetail('${q.id}')" class="font-semibold text-teal-600 dark:text-teal-400 hover:underline shrink-0">
+                          View / Edit
+                        </button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateSavedSearch(val) {
+      appState.savedSearch = val;
+      renderCurrentView();
+    }
+
+    function updateSavedSubjectFilter(val) {
+      appState.savedFilterSubject = val;
+      renderCurrentView();
+    }
+
+    function deleteNoteFromList(qId) {
+      delete appState.notes[qId];
+      saveState();
+      renderCurrentView();
+      showToast('Note deleted.', 'info');
+    }
+
+    // =========================================================================
+    // 14. VIEW 7: SETTINGS & API STATUS
+    // =========================================================================
+    let apiConnectionStatus = 'Ready (Runtime Managed)';
+
+    function renderSettingsView() {
+      return `
+        <div class="max-w-3xl mx-auto space-y-6">
+          <!-- Profile & Preferences -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-5 shadow-xs">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white">Profile &amp; Study Preferences</h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Student Name</label>
+                <input type="text" value="${escapeHtml(appState.settings.studentName)}" onchange="updateStudentName(this.value)"
+                       class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Global Language Preference</label>
+                <select onchange="setGlobalLanguage(this.value)" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm">
+                  <option value="bilingual" ${appState.settings.globalLanguage === 'bilingual' ? 'selected' : ''}>English + Hindi (Bilingual)</option>
+                  <option value="en" ${appState.settings.globalLanguage === 'en' ? 'selected' : ''}>English Only</option>
+                  <option value="hi" ${appState.settings.globalLanguage === 'hi' ? 'selected' : ''}>Hindi Only</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+              <div>
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Appearance Theme</p>
+                <p class="text-xs text-slate-500">Switch between soft daylight and dark study mode</p>
+              </div>
+              <button onclick="toggleTheme()" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                Current: ${appState.settings.theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+              </button>
+            </div>
+          </div>
+
+          <!-- AI Engine & Security Status -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">AI Engine &amp; API Status</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Powered by Gemini 3 Flash • API credentials are securely managed by the runtime environment (never exposed in client storage).
+                </p>
+              </div>
+              <button onclick="testGeminiConnection()" id="test-api-btn" class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-semibold shrink-0 transition">
+                Test AI Connection
+              </button>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700 flex items-center justify-between text-xs sm:text-sm">
+              <span class="font-medium text-slate-600 dark:text-slate-300">Connection Status:</span>
+              <span id="api-status-badge" class="font-semibold text-teal-600 dark:text-teal-400">${escapeHtml(apiConnectionStatus)}</span>
+            </div>
+          </div>
+
+          <!-- Data Management -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-xs">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white">Data Management</h2>
+            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              Your uploaded material summaries, generated questions, attempts, notes, and study schedule are saved locally on this device.
+            </p>
+            <div class="flex flex-wrap gap-3">
+              <button onclick="exportUserDataJSON()" class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                Export Backup (JSON)
+              </button>
+              <button onclick="confirmResetAllData()" class="px-4 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 text-xs sm:text-sm font-semibold hover:bg-rose-100 transition">
+                Clear All Application Data
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateStudentName(name) {
+      appState.settings.studentName = name.trim() || 'NEET 2027 Aspirant';
+      saveState();
+      showToast('Profile name updated.', 'success');
+    }
+
+    async function testGeminiConnection() {
+      const btn = document.getElementById('test-api-btn');
+      const badge = document.getElementById('api-status-badge');
+      if (btn) btn.disabled = true;
+      if (badge) badge.textContent = 'Testing connection...';
+
+      try {
+        const res = await callGeminiAPI({
+          parts: [{ text: 'Reply with exactly: Connected' }],
+          temperature: 0
+        });
+        apiConnectionStatus = `Connected (${res.trim().slice(0, 20)})`;
+        if (badge) badge.textContent = apiConnectionStatus;
+        showToast('AI service connection verified!', 'success');
+      } catch (err) {
+        apiConnectionStatus = 'Unavailable — Check network/API runtime';
+        if (badge) badge.textContent = apiConnectionStatus;
+        showToast('AI connection test failed: ' + err.message, 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function exportUserDataJSON() {
+      const blob = new Blob([JSON.stringify(appState, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `PikaPrep_NEET2027_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Backup JSON downloaded.', 'success');
+    }
+
+    function confirmResetAllData() {
+      showConfirm(
+        'Reset All PikaPrep Data?',
+        'This will permanently delete your uploaded material metadata, generated questions, solved history, notes, and study schedule.',
+        () => {
+          localStorage.removeItem(STORAGE_KEY);
+          appState = structuredClone(defaultState);
+          pendingUploadFiles = [];
+          analysisWorkflowStep = 'upload';
+          saveState();
+          applyTheme();
+          updateLanguageHeaderUI();
+          navigateTo('home');
+          showToast('All application data cleared.', 'info');
+        }
+      );
+    }
+
+    // =========================================================================
+    // 15. MAIN VIEW ROUTER & INITIALIZATION
+    // =========================================================================
+    function renderCurrentView() {
+      const main = document.getElementById('app-main');
+      if (!main) return;
+
+      let html = '';
+      switch (appState.currentView) {
+        case 'home':
+          html = renderHomeView();
+          break;
+        case 'analyze':
+          html = renderAnalyzeView();
+          break;
+        case 'qbank':
+          html = renderQBankView();
+          break;
+        case 'planner':
+          html = renderPlannerView();
+          break;
+        case 'performance':
+          html = renderPerformanceView();
+          break;
+        case 'saved':
+          html = renderSavedView();
+          break;
+        case 'settings':
+          html = renderSettingsView();
+          break;
+        default:
+          html = renderHomeView();
+      }
+
+      main.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    window.onload = function () {
+      // Bind desktop & mobile navigation buttons
+      document.querySelectorAll('[data-nav]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-nav');
+          if (target) navigateTo(target);
+        });
+      });
+
+      applyTheme();
+      updateLanguageHeaderUI();
+      updateNavBadges();
+      updateNavActiveState();
+      renderCurrentView();
+    };
+  </script>
+</body>
+</html>

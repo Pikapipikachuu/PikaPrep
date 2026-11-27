@@ -1,22 +1,23 @@
-# PikaPrep — cozy NEET study companion (frontend foundation)
+# PikaPrep — Live deployment package
 
-## Run
-Open `index.html` in a modern browser. No build step is required.
+This package uses the latest supplied `index (13).html` as the app frontend and routes all Gemini requests through a server-side endpoint. The Gemini key is never stored in browser code.
 
-## Included
-- Responsive cozy dashboard and mobile navigation
-- Whole-interface English / Hindi toggle with Hindi copy
-- Study planner based on exam date, available hours, study days and subject weights
-- A daily checklist; progress changes only when a task is checked
-- Question practice with clearly marked demo questions, explanations, save and notes
-- Local browser persistence for planner, notes, saved questions and practice counts
+## Deploy on Render
+1. Upload the contents of this folder to the root of your GitHub repository (not the ZIP itself).
+2. In Render, create **New → Web Service** and connect that repository.
+3. Runtime: Node. Build command: `npm install`. Start command: `npm start`.
+4. In Render → Environment, add `GEMINI_API_KEY` with your Google AI Studio key. Optionally add `GEMINI_MODEL` (default: `gemini-3-flash-preview`).
+5. Deploy. Open `/api/health` on the deployed site; `configured` should be `true`.
 
-## Important: what is not connected yet
-This is a functional frontend foundation, not a complete AI product. PDF/image OCR, real document analysis, source-page extraction and AI question generation need a secure backend. The app intentionally does not pretend that a selected file has been analysed or show fake AI progress. Do not put AI provider API keys in `script.js` or any browser code.
+## Local run
+- Node.js 20+
+- `npm install`
+- Set `GEMINI_API_KEY` in your shell or copy `.env.example` to `.env` and fill the key.
+- `npm start`, then open `http://localhost:3000`.
 
-## Next production steps
-1. Build a secure upload/API service (file validation, storage, PDF text extraction, OCR/vision, page references).
-2. Add schema-validated AI analysis and user-controlled chapter/topic selection.
-3. Generate and verify NEET-pattern questions from only the selected scope.
-4. Add real performance history, spaced revision and planner adaptation from completed work.
-5. Add accounts/sync, privacy controls, accessibility and device testing.
+## Important
+- Never commit `.env` or paste the API key into HTML/JS/GitHub.
+- The app's PDF.js and other frontend libraries load from CDNs and therefore require internet access.
+- Uploaded file parsing currently occurs in the browser; the extracted text/image payload is sent to the protected server proxy. This package does not add accounts, cloud storage, or cross-device sync.
+- The app stores student data in browser localStorage. Clearing browser data can remove it.
+- The app limits API proxy calls to 20 per minute per IP as a basic safeguard; tune after observing actual use.
